@@ -28,16 +28,15 @@ let idx x l =
     aux l 1
 
 
+(* print a given number of characters *)
+let rec print_n_char c n = if n<=0 then () else (print_char c; print_n_char c (n-1))
 
-let rec print_spaces w = if w<=0 then () else (print_string " "; print_spaces (w-1))
-let rec print_line w = if w<=0 then () else (print_string "-"; print_line (w-1))
-
-(* print a string of given width *)
+(* print a string with padding of spaces of given width *)
 let print_string_w s w =
     print_string s;
-    print_spaces (w-String.length s)
+    print_n_char ' ' (w-String.length s)
 
 let print_char_w a w =
     print_char a;
-    print_spaces (w-1)
+    print_n_char ' ' (w-1)
 

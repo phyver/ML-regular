@@ -18,7 +18,7 @@ let main () =
 
         with
             | Exit -> print_newline (); exit 0
-            | Invalid_argument("empty") ->  ()
+            | Invalid_argument(_) ->  ()
             | Failure(msg) -> print_string ("problem: " ^ msg ^ "\n")
     done
 

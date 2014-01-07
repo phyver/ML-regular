@@ -5,7 +5,7 @@ open Commands
 
 %token LPAR RPAR PLUS STAR ONE ZERO
 %token <char> SYMB
-%token HASH SLASH TILDE COMMA D DERIVATIVES_AUTOMATON
+%token HASH SLASH TILDE COMMA D DERIVATIVES_AUTOMATON V
 %token QUESTION
 %token <string> STR
 %token NEWLINE EOF
@@ -24,6 +24,9 @@ toplevel:
     | STR TILDE regexp NEWLINE                      { Match($1, $3) }
     | D regexp NEWLINE                              { AllDerivatives($2) }
     | DERIVATIVES_AUTOMATON regexp NEWLINE          { DerivativesAutomaton($2) }
+
+    | V NEWLINE                                     { Commands.show_labels_dfa := not !Commands.show_labels_dfa ;
+                                                      raise (Invalid_argument "set verbosity")}
 
     | EOF                                           { raise Exit }
     | NEWLINE                                       { raise (Invalid_argument "empty") }

@@ -1,5 +1,12 @@
-open Regexp
+(***
+ *** commands available from the toplevel interface
+ ***)
 
+
+open Regexp
+open Dfa
+
+let show_labels_dfa = ref true
 
 (* type of different actions of the toplevel *)
 type action =
@@ -17,8 +24,8 @@ let do_help () =
 "Commands:";
 "  > regexp                 print a simplified form of the regexp";
 "  > regexp / \"string\"      print the word derivative of the regexp wrt to the string";
-"  > DA regexp              print the automaton of the derivatives";
 "  > \"string\" ~ regexp      matches the string against the regexp";
+"  > DA regexp              print the automaton of the derivatives";
 "  > Q                      quit";
 "  > ?                      help message";
 "";
@@ -51,8 +58,11 @@ let do_match r s =
     else print_string "False\n"
 
 let do_derivatives_automaton r =
-    let d = Dfa.dfa_from_regexp r in
-    Dfa.print_dfa d true
+    let d = dfa_from_regexp r in
+    print_dfa d !show_labels_dfa;
+    print_newline ();
+    let d = minimize d in
+    print_dfa d !show_labels_dfa;
 
 
 
