@@ -1,17 +1,17 @@
 %{
 open Regexp
-open Utils
+open Commands
 %}
 
 %token LPAR RPAR PLUS STAR ONE ZERO
 %token <char> SYMB
-%token HASH SLASH TILDE COMMA D
+%token HASH SLASH TILDE COMMA D DERIVATIVES_AUTOMATON
 %token QUESTION
 %token <string> STR
 %token NEWLINE EOF
 
 %start toplevel
-%type <Utils.action> toplevel
+%type <Commands.action> toplevel
 %type <Regexp.regexp> regexp
 
 %%
@@ -23,6 +23,7 @@ toplevel:
     | regexp SLASH STR                              { Derivative($1,$3) }
     | STR TILDE regexp NEWLINE                      { Match($1, $3) }
     | D regexp NEWLINE                              { AllDerivatives($2) }
+    | DERIVATIVES_AUTOMATON regexp NEWLINE          { DerivativesAutomaton($2) }
 
     | EOF                                           { raise Exit }
     | NEWLINE                                       { raise (Invalid_argument "empty") }

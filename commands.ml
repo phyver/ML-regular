@@ -9,18 +9,21 @@ type action =
     | Derivative of regexp*string   (* print the simplified form of the derivative *)
     | AllDerivatives of regexp      (* print all the derivatives *)
     | Match of string*regexp        (* match a string against a regexp *)
+    | DerivativesAutomaton of regexp    (* shows the corresponding automaton of derivatives *)
 
 let do_help () =
     List.iter print_endline
     [
 "Commands:";
 "  > regexp                 print a simplified form of the regexp";
-"  > # regexp               print the raw regexp, for debug purposes";
 "  > regexp / \"string\"      print the word derivative of the regexp wrt to the string";
-"  > D regexp               print all the word derivatives of the regexp";
+"  > DA regexp              print the automaton of the derivatives";
 "  > \"string\" ~ regexp      matches the string against the regexp";
 "  > Q                      quit";
 "  > ?                      help message";
+"";
+"  > # regexp               print the raw regexp, for debug purposes";
+"  > D regexp               print all the word derivatives of the regexp";
     ]
 
 let do_simplify r =
@@ -46,6 +49,10 @@ let do_match r s =
     if match_regexp s r
     then print_string "True\n"
     else print_string "False\n"
+
+let do_derivatives_automaton r =
+    let d = Dfa.dfa_from_regexp r in
+    Dfa.print_dfa d true
 
 
 

@@ -1,52 +1,37 @@
-(***
- *** utility functions
- ***)
-
-(* remove duplicates from a sorted list *)
-let rec uniq l =
-    let rec aux l acc = match l with
-        | [] -> List.rev acc
-        | [r] -> List.rev (r::acc)
-        | r1::r2::l when r1=r2 -> aux (r2::l) acc
-        | r1::r2::l -> aux (r2::l) (r1::acc)
-    in aux l []
-
-(* transform a string into a list of characters *)
-let explode s =
-    let rec exp i l =
-        if i < 0 then l else exp (i - 1) (s.[i] :: l)
-    in
-        exp (String.length s - 1) []
-
+open Misc
 
 (***
  *** regular expressions and their derivatives
  ***)
 
 (* type for symbols *)
-type alphabet = char
+type symbol = char
 
 
 (* type for basic regular expressions *)
 type regexp =
   | Zero
   | One
-  | Symb of alphabet
+  | Symb of symbol
   | Sum of regexp*regexp
   | Product of regexp*regexp
   | Star of regexp
 
 
 (* print a regexp *)
-let rec print_regexp (r:regexp) : unit =
+let rec string_of_regexp (r:regexp) : string =
     match r with
-    | Zero -> print_string "0"
-    | One -> print_string "1"
-    | Symb(a) -> print_char a
-    | Star(Zero as r) | Star(One as r) | Star(Symb(_) as r) -> print_regexp r; print_string "*"
-    | Star(r) -> print_string "("; print_regexp r; print_string ")*"
-    | Sum(r1, r2) -> print_regexp r1; print_string " + "; print_regexp r2
-    | Product(r1, r2) -> print_regexp r1; print_regexp r2
+    | Zero -> "0"
+    | One -> "1"
+    | Symb(a) -> String.make 1 a
+    | Star(Zero as r) | Star(One as r) | Star(Symb(_) as r) -> (string_of_regexp r) ^ "*"
+    | Star(r) -> "(" ^ (string_of_regexp r) ^ ")*"
+    | Sum(r1, r2) -> (string_of_regexp r1) ^ " + " ^ (string_of_regexp r2)
+    | Product(r1, r2) -> (string_of_regexp r1) ^ (string_of_regexp r2)
+
+let rec print_regexp (r:regexp) : unit =
+    print_string (string_of_regexp r)
+
 
 (* print the raw regexp, with parenthesis everywhere *)
 let rec print_raw_regexp (r:regexp) : unit =
@@ -92,7 +77,7 @@ let rec simplify (r:regexp) : regexp = match r with
   | Star(r) ->
           begin
               let r = simplify r in
-              match r with 
+              match r with
                 | Zero -> Zero
                 | One -> One
                 | Star(r) -> Star(r)
@@ -135,7 +120,7 @@ let constant_part (r:regexp) : regexp =
 
 
 (* the "derivative with respect to a symbol" of a regular expression *)
-let rec derivative (r:regexp) (a:alphabet) : regexp =
+let rec derivative (r:regexp) (a:symbol) : regexp =
   match r with
   | Zero | One -> Zero
   | Symb(b) when b = a -> One
@@ -146,22 +131,22 @@ let rec derivative (r:regexp) (a:alphabet) : regexp =
 
 
 (* the word derivative *)
-let word_derivative (r:regexp) (s:string) : regexp =
-    let rec aux r l = 
+let word_derivative (r:regexp) (w:string) : regexp =
+    let rec aux r l =
         match l with
         | [] -> constant_part r
         | a::l -> aux (derivative r a) l
     in
-    aux r (explode s)
+    aux r (explode w)
 
 
 (* match a string against a regexp using iterated derivatives *)
-let match_regexp (s:string) (r:regexp) : bool =
-    One = word_derivative r s
+let match_regexp (w:string) (r:regexp) : bool =
+    One = word_derivative r w
 
 
 (* get a list of symbols used in a regexp *)
-let get_symbols (r:regexp) : alphabet list =
+let get_symbols (r:regexp) : symbol list =
     let rec aux r = match r with
     | One | Zero -> []
     | Symb(a) -> [a]

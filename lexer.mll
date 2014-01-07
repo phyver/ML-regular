@@ -22,6 +22,7 @@ rule token = parse
   | 'D'             { D }
   | '?'             { QUESTION }
   | '~'             { TILDE }
+  | "DA"            { DERIVATIVES_AUTOMATON }
 
   | [' ' '\t']      { token lexbuf }
   | '\n'            { NEWLINE }

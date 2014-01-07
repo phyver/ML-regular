@@ -1,5 +1,5 @@
 open Regexp
-open Utils
+open Commands
 
 let main () =
     while true
@@ -14,6 +14,7 @@ let main () =
             | AllDerivatives(r) -> do_all_derivatives r
             | Match(s,r) -> do_match r s
             | Help -> do_help ()
+            | DerivativesAutomaton(r) -> do_derivatives_automaton r
 
         with
             | Exit -> print_newline (); exit 0
