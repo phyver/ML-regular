@@ -9,8 +9,8 @@ INCLUDES=
 OCAMLFLAGS=$(INCLUDES)
 OCAMLDEPFLAGS=$(INCLUDES)
 
-BYTEFILES=misc.cmo regexp.cmo dfa.cmo lexer.cmo commands.cmo parser.cmo
-OPTFILES=misc.cmx regexp.cmx dfa.cmx lexer.cmx commands.cmx parser.cmx
+BYTEFILES=misc.cmo regexp.cmo dfa.cmo lexer.cmo regexp2dfa.cmo commands.cmo parser.cmo
+OPTFILES=misc.cmx regexp.cmx dfa.cmx lexer.cmx regexp2dfa.cmx commands.cmx parser.cmx
 
 # Common rules
 .SUFFIXES: .ml .mli .cmo .cmi .cmx
@@ -46,7 +46,6 @@ clean:
 	rm -f main
 
 very_clean:
-	rm -f *.mli
 	rm -f *.cm[aoix] *.o
 	rm -f lexer.ml parser.ml parser.mli
 	rm -f main

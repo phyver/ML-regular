@@ -25,7 +25,7 @@ toplevel:
     | D regexp NEWLINE                              { AllDerivatives($2) }
     | DERIVATIVES_AUTOMATON regexp NEWLINE          { DerivativesAutomaton($2) }
 
-    | V NEWLINE                                     { Commands.show_labels_dfa := not !Commands.show_labels_dfa ;
+    | V NEWLINE                                     { Commands.verbose := not !Commands.verbose ;
                                                       raise (Invalid_argument "set verbosity")}
 
     | EOF                                           { raise Exit }

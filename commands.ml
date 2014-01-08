@@ -4,7 +4,7 @@
 
 
 open Regexp
-open Dfa
+open Regexp2dfa
 
 let show_labels_dfa = ref true
 
@@ -57,12 +57,13 @@ let do_match r s =
     then print_string "True\n"
     else print_string "False\n"
 
+let verbose = ref true
 let do_derivatives_automaton r =
     let d = dfa_from_regexp r in
-    print_dfa d !show_labels_dfa;
+    DFA_Regexp.print ~show_labels:(!verbose) d;
     print_newline ();
-    let d = minimize d in
-    print_dfa d !show_labels_dfa;
+    let d = DFA_Regexp.minimize d in
+    DFA_Regexp.print ~show_labels:(!verbose) d;
 
 
 
