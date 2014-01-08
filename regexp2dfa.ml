@@ -1,7 +1,7 @@
 (* from regexp to dfa *)
 
 open Regexp
-open Dfa
+open DFA
 
 module ORegexp = struct
     type t = regexp
