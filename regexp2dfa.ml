@@ -1,8 +1,10 @@
 (* from regexp to dfa *)
 
 open Regexp
-open DFA
+open Automata
 
+(* we will need an automaton with regexps as states and characters as symbols
+ * those are the corresponding OTypes *)
 module ORegexp = struct
     type t = regexp
     let compare = compare
@@ -15,41 +17,42 @@ module OChar = struct
     let to_string c = String.make 1 c
 end
 
-module DFA_Regexp = Make(OChar)(ORegexp)
+
+module DFA_Regexp = DFA(OChar)(ORegexp)
+module LTS = LTS(OChar)(ORegexp)
 
 
+(* transform a regexp into an automaton by computing its derivatives *)
 let dfa_from_regexp (r:regexp) : DFA_Regexp.dfa =
 
+    (* the symbols appearing in the regexp *)
     let actual_symbols = Regexp.get_symbols r in
 
-    let rec add_transition_row (a:char) t row =
-        try
-            let _ = List.assoc a row in
-            assert false
-        with Not_found -> (a,t)::row
-    in
-
-    let rec add_transition s (a:char) t matrix acc =
-        match matrix with
-        | [] -> (s,[a,t])::acc
-        | (st,row)::matrix when st=s -> (s, add_transition_row a t row)::(List.rev_append acc matrix)
-        | (st,row)::matrix -> add_transition s a t matrix ((st,row)::acc)
-    in
-
-    let rec aux done_states matrix accepting todo =
+    (* we compute all the derivatives and put them in an automaton
+     *   - done_states contains all the states (regexps) whose derivative we have already computed
+     *     the corresponding rows in the automaton are thus complete
+     *   - matrix contains the LTS of the automaton
+     *   - accepting contains the list of accepting states we have already encountered
+     *   - todo contains the states (regexps) whose derivatives we haven't yet computed
+     *)
+    (* FIXME: use sets for done_states *)
+    let rec aux (done_states:regexp list) (matrix:LTS.lts) (accepting:regexp list) (todo:regexp list) =
         match todo with
         | [] -> done_states, matrix, accepting
         | r::todo ->
-                let accepting = if (Regexp.contains_epsilon r) then r::accepting else accepting in
-                if List.mem r done_states
-                then aux done_states matrix accepting todo
-                else
+                let accepting = if (Regexp.contains_epsilon r)
+                                then r::accepting
+                                else accepting
+                in
+                if List.mem r done_states                   (* if we've already done r *)
+                then aux done_states matrix accepting todo  (* we continue *)
+                else                                        (* otherwise *)
                     let matrix,todo =
-                        List.fold_left
-                            (fun mt (a:char) ->
+                        List.fold_left                      (* we compute all its derivatives *)
+                            (fun mt (a:char) ->             (* and add the corresponding transitions in "matrix" *)
                                 let matrix, todo = mt in
                                 let ra = Regexp.simplify (Regexp.derivative r a) in
-                                let matrix = add_transition r a ra matrix [] in
+                                let matrix = LTS.add r a ra matrix in
                                 let todo = ra::todo in
                                 matrix, todo
                             )
@@ -59,7 +62,7 @@ let dfa_from_regexp (r:regexp) : DFA_Regexp.dfa =
                     aux (r::done_states) matrix accepting todo
     in
 
-    let _, matrix, accepting = aux [] [] [] [r] in
+    let _, matrix, accepting = aux [] LTS.empty [] [r] in
 
     DFA_Regexp.from_lts matrix r accepting
 

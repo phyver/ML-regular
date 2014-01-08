@@ -40,3 +40,7 @@ let print_char_w a w =
     print_char a;
     print_n_char ' ' (w-1)
 
+
+(* xor function: exactly one of a and b is true *)
+let xor a b = (a && not b) || (not a && b)
+
