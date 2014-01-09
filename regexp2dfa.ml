@@ -19,7 +19,7 @@ end
 
 
 module DFA_Regexp = DFA(OChar)(ORegexp)
-module LTS = LTS(OChar)(ORegexp)
+module LTS = LTS(OChar)(GeneralizedState(ORegexp))
 
 
 (* transform a regexp into an automaton by computing its derivatives *)
@@ -52,7 +52,7 @@ let dfa_from_regexp (r:regexp) : DFA_Regexp.dfa =
                             (fun mt (a:char) ->             (* and add the corresponding transitions in "matrix" *)
                                 let matrix, todo = mt in
                                 let ra = Regexp.simplify (Regexp.derivative r a) in
-                                let matrix = LTS.add r a ra matrix in
+                                let matrix = LTS.add (Atom(r)) a (Atom(ra)) matrix in
                                 let todo = ra::todo in
                                 matrix, todo
                             )

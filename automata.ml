@@ -10,19 +10,92 @@ module type OType = sig
     val to_string : t -> string
 end
 
+(* we will need states to be closed under pairing and finite sets *)
+type 'a generalized_state =
+    | Atom of 'a
+    | Pair of 'a generalized_state * 'a generalized_state
+    | FSet of 'a generalized_state list
+
+module GeneralizedState (State:OType)
+  : OType with type t=State.t generalized_state
+  = struct
+    type t = State.t generalized_state
+
+    let rec list_compare cmp l1 l2 = match l1,l2 with
+        | [], [] -> 0
+        | [], _ -> -1
+        | _, [] -> +1
+        | a1::l1, a2::l2 ->
+                let c = cmp a1 a2 in
+                if c = 0
+                then list_compare cmp l1 l2
+                else c
+
+    let rec compare s1 s2 = match s1,s2 with
+        | Atom(a1), Atom(a2) -> State.compare a1 a2
+        | Atom(_), _ -> -1
+        | _, Atom(_) -> +1
+        | Pair(s1,s2), Pair(p1,p2) ->
+                let c = compare s1 p1 in
+                if c = 0
+                then compare s2 p2
+                else c
+        | Pair(_), FSet(_) -> -1
+        | FSet(_), Pair(_) -> +1
+        | FSet(l1), FSet(l2) ->
+                list_compare compare l1 l2
+
+    let rec to_string = function
+        | Atom(a) -> State.to_string a
+        | Pair(s1,s2) -> "<" ^ (to_string s1) ^ " , " ^ (to_string s2) ^ ">"
+        | FSet(l) ->
+                begin
+                    let lstr = List.map to_string l in
+                    match lstr with
+                    | [] -> "{}"
+                    | hd::tl ->
+                            let str = List.fold_right
+                                        (fun s ss -> " , " ^ s ^ ss)
+                                        tl
+                                        ""
+                            in
+                            "{" ^ hd ^ str ^ "}"
+                end
+
+
+end
 
 (***
  *** module for labelled transition systems, with utility functions
  ***)
-module LTS (Label:OType)(State:OType) = struct
+module type LTSType = sig
+    type state
+    type label
+    type lts
+
+    val get_states : lts -> state list
+    val get_labels : lts -> label list
+    val next : lts -> state -> label -> state
+
+    val empty : lts
+    val add : state -> label -> state -> lts -> lts
+
+    val fold : (state -> label -> state -> 'a -> 'a) -> lts -> 'a -> 'a
+    val filter : (state -> label -> state -> bool) -> lts -> lts
+    val map : (state -> state) -> lts -> lts
+end
+
+module LTS (Label:OType)(State:OType)
+ : LTSType with type state = State.t
+            and type label = Label.t
+ = struct
+
+    module Row = Map.Make (struct type t = Label.t let compare = Label.compare end)
+    module Matrix = Map.Make (struct type t = State.t let compare = State.compare end)
 
     type state = State.t
     type label = Label.t
-
-    module Row = Map.Make (struct type t = label let compare = Label.compare end)
     type row = state Row.t
-
-    module Matrix = Map.Make (struct type t = state let compare = State.compare end)
     type lts = row Matrix.t
 
     (* empty LTS *)
@@ -65,63 +138,89 @@ module LTS (Label:OType)(State:OType) = struct
                   with Not_found -> Row.empty in
         Matrix.add s (Row.add l t row) m
 
+    (* fold *)
+    let fold (f:state -> label -> state -> 'a -> 'a) (m:lts) (o:'a) : 'a =
+        Matrix.fold
+            (fun s row acc1 -> Row.fold (fun l t acc2 -> f s l t acc2) row acc1) m o
+
     (* applies a function to states
      * if the function isn't a morphism, the result may be unexpected *)
     let map (f:state -> state) (m:lts) =
-        Matrix.fold
-            (fun s row m1 -> Row.fold (fun l t m2 -> add (f s) l (f t) m2) row m1)
-            m
-            Matrix.empty
+        fold (fun s l t m -> add (f s) l (f t) m) m Matrix.empty
+
 end
 
 
 (***
- *** module for working with DFA with single state/symbol types
+ *** module for working with DFA with single atomic_state/symbol types
  ***)
-module DFA (Symbol:OType) (State:OType) = struct
+module type DFAType = sig
+        type atomic_state
+        type state
+        type symbol
+        type dfa
+        val get_states : dfa -> state list
+        val get_symbols : dfa -> symbol list
+        val is_accepting : dfa -> state -> bool
+        val next : dfa -> state -> symbol -> state
 
-    (* types for symbols and states *)
-    type symbol = Symbol.t
-    type state = State.t
+        type lts
+        val from_lts : lts -> atomic_state -> atomic_state list -> dfa
 
-    (* finite sets of symbols and states *)
+        val print : ?show_labels:bool -> dfa -> unit
+
+        val reachable : dfa -> dfa
+        val minimize : dfa -> dfa
+        val complement : dfa -> dfa
+        val union : dfa -> dfa -> dfa
+        val intersection : dfa -> dfa -> dfa
+end
+
+module DFA (Symbol:OType) (State:OType)
+  : DFAType
+  with type symbol = Symbol.t
+   and type atomic_state = State.t
+   and type state = GeneralizedState(State).t
+   and type lts = LTS(Symbol)(GeneralizedState(State)).lts
+  = struct
+
+    module GState = GeneralizedState(State)
     module SetSymbols = Set.Make (struct type t=Symbol.t let compare = Symbol.compare end)
-    module SetStates = Set.Make (struct type t=State.t let compare = State.compare end)
+    module SetStates = Set.Make (struct type t=GState.t let compare = GState.compare end)
+    module LTS = LTS(Symbol)(GeneralizedState(State))
 
-    (* corresponding labeled transition systems *)
-    module LTS = LTS(Symbol)(State)
+    type symbol = Symbol.t
+    type atomic_state = State.t
+    type state = GState.t
     type lts = LTS.lts
 
     (* the actual type for deterministic automata *)
     type dfa = {
-        init : state                ;
+        init : state               ;
         matrix : lts                ;
         accepting : SetStates.t     ;
         }
 
 
     (* utility: get the set of symbols of the automaton *)
-    let get_symbols (d:dfa) : SetSymbols.t =
-        List.fold_left (fun acc a -> SetSymbols.add a acc) SetSymbols.empty (LTS.get_labels d.matrix)
+    let get_symbols (d:dfa) : symbol list = LTS.get_labels d.matrix
 
     (* utility: get the set of states of the automaton *)
-    let get_states (d:dfa) : SetStates.t =
-        List.fold_left (fun acc s -> SetStates.add s acc) SetStates.empty (LTS.get_states d.matrix)
+    let get_states (d:dfa) : state list = LTS.get_states d.matrix
 
-    (* utility: convert an LTS, with init state and list of states into an automaton *)
-    let from_lts (matrix:lts) (init:state) (accepting:state list) : dfa =
-        let accepting = List.fold_left (fun acc s -> SetStates.add s acc) SetStates.empty accepting in
+    (* utility: convert an LTS, with init atomic_state and list of states into an automaton *)
+    let from_lts (matrix:lts) (init:atomic_state) (accepting:atomic_state list) : dfa =
+        let accepting = List.fold_left (fun acc s -> SetStates.add (Atom(s)) acc) SetStates.empty accepting in
         {
-            init = init             ;
+            init = Atom(init)       ;
             matrix = matrix         ;
             accepting = accepting   ;
         }
 
-
-    (* check if a state is accepting *)
+    (* check if a atomic_state is accepting *)
     let is_accepting (d:dfa) (s:state) : bool = SetStates.mem s d.accepting
 
-    (* next state *)
+    (* next atomic_state *)
     let next (d:dfa) (s:state) (a:symbol) : state = LTS.next d.matrix s a
 
     (* compute the restriction of an automaton to its reachable states *)
@@ -133,12 +232,12 @@ module DFA (Symbol:OType) (State:OType) = struct
         let rec dfs current visited =
             if SetStates.mem current visited
             then visited
-            else SetSymbols.fold
-                    (fun a visited ->
+            else List.fold_left
+                    (fun visited a ->
                         try dfs (next d current a) (SetStates.add current visited)
                         with Not_found -> visited)
-                    actual_symbols
                     visited
+                    actual_symbols
         in
         let reachable_states = dfs d.init SetStates.empty in
 
@@ -158,24 +257,24 @@ module DFA (Symbol:OType) (State:OType) = struct
      * with the (optional) argument show_labels *)
     let print ?(show_labels=false) (d:dfa) : unit =
         (* sets of symbols and states of the automaton *)
-        let actual_symbols = SetSymbols.elements (get_symbols d) in
-        let actual_states = SetStates.elements (get_states d) in
+        let actual_symbols = get_symbols d in
+        let actual_states = get_states d in
 
-        (* width of the largest state, necessary to align columns
+        (* width of the largest atomic_state, necessary to align columns
          * we suppose that symbols are smaller than states *)
         let width = if show_labels
-                    then List.fold_left (fun w s -> max w (String.length (State.to_string s))) 0 actual_states
+                    then List.fold_left (fun w s -> max w (String.length (GState.to_string s))) 0 actual_states
                     else String.length (string_of_int (List.length actual_states))
         in
 
         (* print a single row of the automaton *)
         let print_row s =
-            (* the source state *)
+            (* the source atomic_state *)
             if s = d.init
             then print_string "-> "
             else print_string "   ";
             if show_labels
-            then print_string_w (State.to_string s) width
+            then print_string_w (GState.to_string s) width
             else print_string_w (string_of_int (idx s actual_states)) width;
             if is_accepting d s
             then print_string " -> | "
@@ -185,7 +284,7 @@ module DFA (Symbol:OType) (State:OType) = struct
             List.iter
                 (fun a ->
                     let t = try if show_labels
-                                then State.to_string (next d s a)
+                                then GState.to_string (next d s a)
                                 else string_of_int (idx (next d s a) actual_states)
                             with Not_found -> "!"
                     in
@@ -216,11 +315,11 @@ module DFA (Symbol:OType) (State:OType) = struct
     (* we will need relation, i.e. sets of pairs of states *)
     module Rel = Set.Make(
         struct
-            type t = State.t*State.t
+            type t = GState.t*GState.t
             let compare a b =
-                let c = State.compare (fst a) (fst b) in
+                let c = GState.compare (fst a) (fst b) in
                 if c=0
-                then State.compare (snd a) (snd b)
+                then GState.compare (snd a) (snd b)
                 else c
         end)
 
@@ -228,8 +327,8 @@ module DFA (Symbol:OType) (State:OType) = struct
      * we use a map for that *)
     module MapSt = Map.Make(
         struct
-            type t = State.t
-            let compare = State.compare
+            type t = GState.t
+            let compare = GState.compare
         end)
 
 
@@ -240,14 +339,15 @@ module DFA (Symbol:OType) (State:OType) = struct
 
         (* the set of pairs (x,y) with x>=y, where x and y are states *)
         let all_pairs =
-            SetStates.fold
-                (fun s1 r1 -> SetStates.fold
-                                (fun s2 r2 -> Rel.add (max s1 s2, min s1 s2) r2)
-                                (get_states d)
+            let actual_states = get_states d in
+            List.fold_left
+                (fun r1 s1 -> List.fold_left
+                                (fun r2 s2 -> Rel.add (max s1 s2, min s1 s2) r2)
                                 r1
+                                actual_states
                 )
-                (get_states d)
                 Rel.empty
+                actual_states
         in
 
         (* "different" is the list of pairs of _surely_ different states,
@@ -273,7 +373,7 @@ module DFA (Symbol:OType) (State:OType) = struct
                 (fun xy dsc ->
                     let x, y = xy in
                     let different, similar, change = dsc in
-                    let b = SetSymbols.exists
+                    let b = List.exists
                                 (fun a ->
                                 let xa = next d x a in
                                 let ya = next d y a in
@@ -302,7 +402,7 @@ module DFA (Symbol:OType) (State:OType) = struct
         (* we can now compute the equivalence relation of similarity between states *)
         let equiv : Rel.t = all_steps different similar in
 
-        (* to make life easier, we now associate to each state a canonical
+        (* to make life easier, we now associate to each atomic_state a canonical
          * representant (the smallest in the equivalent class)
          * we use a map for that purpose *)
         let representants : state MapSt.t =
@@ -330,12 +430,12 @@ module DFA (Symbol:OType) (State:OType) = struct
             aux pairs_equiv (MapSt.add x1 y1 MapSt.empty)
         in
 
-        (* we can now easily compute a representent for any state *)
+        (* we can now easily compute a representent for any atomic_state *)
         let repr (s:state) : state = MapSt.find s representants in
 
         (* we collapse the automaton using this *)
         let matrix = LTS.map repr d.matrix in
-        (* we also replace each accepting state by its representing,
+        (* we also replace each accepting atomic_state by its representing,
          * effectively removing all states that are not equal to their representant *)
         let accepting =
             SetStates.fold (fun s acc -> SetStates.add (repr s) acc)
@@ -351,13 +451,114 @@ module DFA (Symbol:OType) (State:OType) = struct
     (* complement of an automaton
      * we just change the accepting states *)
     let complement d =
+        let states = List.fold_left (fun acc s -> SetStates.add s acc) SetStates.empty (get_states d) in
         {
             init = d.init                                           ;
             matrix = d.matrix                                       ;
-            accepting = SetStates.diff (get_states d) d.accepting   ;
+            accepting = SetStates.diff states d.accepting   ;
         }
 
+    let intersection (d1:dfa) (d2:dfa) : dfa =
+        let states1 = get_states d1 in
+        let states2 = get_states d2 in
+        let symbols = uniq (List.merge Symbol.compare (get_symbols d2) (get_symbols d1)) in
+        let matrix : lts =
+            List.fold_left
+                (fun matrix1 s1 ->
+                    List.fold_left
+                        (fun matrix2 s2 ->
+                            List.fold_left
+                                (fun matrix3 a ->
+                                    try
+                                        let sa1 = next d1 s1 a in
+                                        let sa2 = next d2 s2 a in
+                                        (LTS.add (Pair(s1,s2)) a (Pair(sa1,sa2)) matrix3)
+                                    with Not_found -> matrix3
+                                )
+                                matrix2
+                                symbols)
+                        matrix1
+                        states2)
+                LTS.empty
+                states1
+        in
+
+        (* cartesian product of the accepting states *)
+        let accepting =
+            let accepting1 = SetStates.elements (d1.accepting) in
+            let accepting2 = SetStates.elements (d2.accepting) in
+            List.fold_left
+                (fun acc1 s1 ->
+                    List.fold_left
+                        (fun acc2 s2 -> SetStates.add (Pair(s1,s2)) acc2)
+                        acc1
+                        accepting2
+                )
+                SetStates.empty
+                accepting1
+        in
+
+        {
+            init = Pair(d1.init, d2.init)   ;
+            matrix = matrix                 ;
+            accepting = accepting           ;
+        }
+
+    let union (d1:dfa) (d2:dfa) : dfa =
+        let states1 = get_states d1 in
+        let states2 = get_states d2 in
+        let symbols = uniq (List.merge Symbol.compare (get_symbols d2) (get_symbols d1)) in
+        let matrix : lts =
+            List.fold_left
+                (fun matrix1 s1 ->
+                    List.fold_left
+                        (fun matrix2 s2 ->
+                            List.fold_left
+                                (fun matrix3 a ->
+                                    try
+                                        let sa1 = next d1 s1 a in
+                                        let sa2 = next d2 s2 a in
+                                        (LTS.add (Pair(s1,s2)) a (Pair(sa1,sa2)) matrix3)
+                                    with Not_found -> matrix3
+                                )
+                                matrix2
+                                symbols)
+                        matrix1
+                        states2)
+                LTS.empty
+                states1
+        in
+
+        let accepting =
+            let accepting1 = SetStates.elements (d1.accepting) in
+            List.fold_left
+                (fun acc1 s1 ->
+                    List.fold_left
+                        (fun acc2 s2 -> SetStates.add (Pair(s1,s2)) acc2)
+                        acc1
+                        states2
+                )
+                SetStates.empty
+                accepting1
+        in
+        let accepting =
+            let accepting2 = SetStates.elements (d2.accepting) in
+            List.fold_left
+                (fun acc1 s1 ->
+                    List.fold_left
+                        (fun acc2 s2 -> SetStates.add (Pair(s1,s2)) acc2)
+                        acc1
+                        accepting2
+                )
+                accepting
+                states1
+        in
+
+        {
+            init = Pair(d1.init, d2.init)   ;
+            matrix = matrix                 ;
+            accepting = accepting           ;
+        }
+
+
 end
-
-
-
