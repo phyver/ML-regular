@@ -17,6 +17,7 @@ type action =
     | AllDerivatives of regexp      (* print all the derivatives *)
     | Match of string*regexp        (* match a string against a regexp *)
     | DerivativesAutomaton of regexp    (* shows the corresponding automaton of derivatives *)
+    | Equal of regexp*regexp        (* test if two regexp are equal *)
 
 let do_help () =
     List.iter print_endline
@@ -26,6 +27,7 @@ let do_help () =
 "  > regexp / \"string\"      print the word derivative of the regexp wrt to the string";
 "  > \"string\" ~ regexp      matches the string against the regexp";
 "  > DA regexp              print the automaton of the derivatives";
+"  > regexp == regexp       test if the two regexp are equal";
 "  > Q                      quit";
 "  > ?                      help message";
 "";
@@ -63,7 +65,11 @@ let do_derivatives_automaton r =
     DFA_Regexp.print ~show_labels:(!verbose) d;
     print_newline ();
     let d = DFA_Regexp.minimize d in
-    DFA_Regexp.print ~show_labels:(!verbose) d;
+    DFA_Regexp.print ~show_labels:(!verbose) d
 
+let do_equal r1 r2 =
+    if DFA_Regexp.equal (dfa_from_regexp (simplify r1)) (dfa_from_regexp (simplify r2))
+    then print_endline "True"
+    else print_endline "False"
 
 

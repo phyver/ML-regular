@@ -5,9 +5,11 @@ open Commands
 
 %token LPAR RPAR PLUS STAR ONE ZERO
 %token <char> SYMB
-%token HASH SLASH TILDE COMMA D DERIVATIVES_AUTOMATON V
-%token QUESTION
+
+%token HASH SLASH TILDE COMMA D DERIVATIVES_AUTOMATON DOUBLE_EQUAL V
 %token <string> STR
+%token QUESTION
+
 %token NEWLINE EOF
 
 %start toplevel
@@ -24,6 +26,7 @@ toplevel:
     | STR TILDE regexp NEWLINE                      { Match($1, $3) }
     | D regexp NEWLINE                              { AllDerivatives($2) }
     | DERIVATIVES_AUTOMATON regexp NEWLINE          { DerivativesAutomaton($2) }
+    | regexp DOUBLE_EQUAL regexp                    { Equal($1, $3) }
 
     | V NEWLINE                                     { Commands.verbose := not !Commands.verbose ;
                                                       raise (Invalid_argument "set verbosity")}

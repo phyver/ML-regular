@@ -15,6 +15,7 @@ let main () =
             | Match(s,r) -> do_match r s
             | Help -> do_help ()
             | DerivativesAutomaton(r) -> do_derivatives_automaton r
+            | Equal(r1,r2) -> do_equal r1 r2
 
         with
             | Exit -> print_newline (); exit 0

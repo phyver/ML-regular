@@ -24,6 +24,7 @@ rule token = parse
   | '~'             { TILDE }
   | "DA"            { DERIVATIVES_AUTOMATON }
   | 'V'             { V }
+  | "=="            { DOUBLE_EQUAL }
 
   | [' ' '\t']      { token lexbuf }
   | '\n'            { NEWLINE }
