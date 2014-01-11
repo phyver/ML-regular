@@ -29,12 +29,13 @@ let do_help () =
 "Regexp are obtained from 0, 1, lowercase letters, +, * and concatenation.";
 "";
 "dfa are obtained from:";
-"     <regexp>                  automaton of the derivatives of the regexp";
-"     <#regexp>                 automaton of the derivatives of the raw regexp";
+"     [regexp]                  automaton of the derivatives of the regexp";
+"     [#regexp]                 automaton of the derivatives of the raw regexp";
 "     dfa & dfa                 intersection of the two automata";
 "     dfa | dfa                 union of the two automata";
 "     ~dfa                      complement of the automaton";
 "     !dfa                      minimization of the automaton";
+"     [nfa]                     determinisation of the automaton";
 "";
 "nfa are obtained from:";
 "     {regexp}                  automaton inductively obtained from the regexp";
@@ -43,6 +44,7 @@ let do_help () =
 "     nfa*                      star of the automaton";
 "     nfa . nfa                 concatenation of the automata";
 "     REV nfa                   reversal of the automaton";
+"     {dfa}                     the same automaton, seen as non-deterministic";
 "";
     ]
 
@@ -135,6 +137,7 @@ dfa:
     | BANG dfa                  { DFA_Regexp.minimize $2 }
     | dfa PIPE dfa              { DFA_Regexp.union $1 $3 }
     | dfa AMPER dfa             { DFA_Regexp.intersection $1 $3 }
+    | LBR nfa RBR               { NFA_Regexp.to_dfa $2 }
 
 nfa:
     | LPAR nfa RPAR             { $2 }
@@ -144,6 +147,7 @@ nfa:
     | nfa STAR                  { NFA_Regexp.star $1 }
     | nfa DOT nfa               { NFA_Regexp.concat $1 $3 }
     | REV nfa                   { NFA_Regexp.reverse $2 }
+    | LCURL dfa RCURL           { NFA_Regexp.from_dfa $2 }
 
 regexp:
     | sum_regexp { $1 }

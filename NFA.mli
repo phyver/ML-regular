@@ -22,6 +22,12 @@ module type NFAType =
     val star : nfa -> nfa
     val reverse : nfa -> nfa
     val accepts : nfa -> symbol list -> bool
+
+    val from_matrix : (state * (symbol option * (state list)) list) list ->
+                      (state list) ->
+                      (state list) -> nfa
+    val from_dfa : dfa -> nfa
+    val to_dfa : nfa -> dfa
   end
 
 module Make (Symbol:Misc.OType) (State:Misc.OType)

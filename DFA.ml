@@ -103,7 +103,10 @@ module type DFAType = sig
         val next : dfa -> state -> symbol -> state
         val accepts : dfa -> symbol list -> bool
 
-        val from_lts : ((atomic_state * ((symbol*atomic_state) list)) list ) -> atomic_state -> atomic_state list -> dfa
+        val from_matrix : ((state * ((symbol*state) list)) list ) ->
+                          state ->
+                          state list ->
+                          dfa
 
         val print : ?show_labels:bool -> dfa -> unit
 
@@ -165,14 +168,16 @@ module Make(Symbol:OType) (State:OType)
     let get_init (d:dfa) : state = d.init
 
     (* utility: convert an LTS, with init atomic_state and list of states into an automaton *)
-    let from_lts (matrix:(atomic_state*((symbol*atomic_state) list)) list) (init:atomic_state) (accepting:atomic_state list) : dfa =
+    let from_matrix (matrix:(state*((symbol*state) list)) list)
+                    (init:state)
+                    (accepting:state list) : dfa =
         let matrix = List.fold_left
                         (fun matrix1 srow ->
                             let s,row = srow in
                             List.fold_left
                                 (fun matrix2 at ->
                                     let a,t = at in
-                                    LTS.add (Atom(s)) a (Atom(t)) matrix2
+                                    LTS.add s a t matrix2
                                 )
                                 matrix1
                                 row
@@ -181,10 +186,10 @@ module Make(Symbol:OType) (State:OType)
                         LTS.empty
                         matrix
         in
-        let accepting = List.fold_left (fun acc s -> SetStates.add (Atom(s)) acc) SetStates.empty accepting in
+        let accepting = List.fold_left (fun acc s -> SetStates.add s acc) SetStates.empty accepting in
         let symbols = List.fold_left (fun acc a -> SetSymbols.add (a) acc) SetSymbols.empty (LTS.get_labels matrix) in
         {
-            init = Atom(init)       ;
+            init = init       ;
             matrix = matrix         ;
             accepting = accepting   ;
             symbols = symbols       ;

@@ -1,6 +1,7 @@
 (* from regexp to dfa *)
 
 open Regexp
+open Misc
 
 (* we will need an automaton with regexps as states and characters as symbols
  * those are the corresponding OTypes *)
@@ -33,12 +34,12 @@ let dfa_from_regexp (r:regexp) : DFA_Regexp.dfa =
      *   - accepting contains the list of accepting states we have already encountered
      *   - todo contains the states (regexps) whose derivatives we haven't yet computed
      *)
-    let rec aux (done_states:regexp list) matrix (accepting:regexp list) (todo:regexp list) =
+    let rec aux (done_states:regexp list) matrix accepting (todo:regexp list) =
         match todo with
         | [] -> done_states, matrix, accepting
         | r::todo ->
                 let accepting = if (Regexp.contains_epsilon r)
-                                then r::accepting
+                                then Atom(r)::accepting
                                 else accepting
                 in
                 if List.mem r done_states                   (* if we've already done r *)
@@ -49,18 +50,18 @@ let dfa_from_regexp (r:regexp) : DFA_Regexp.dfa =
                             (fun rt (a:char) ->
                                 let row,todo = rt in
                                 let ra = Regexp.simplify (Regexp.derivative r a) in
-                                let row = (a,ra)::row in
+                                let row = (a,Atom(ra))::row in
                                 let todo = ra::todo in
                                 (row,todo))
                             ([],todo)
                             actual_symbols
                     in
-                    aux (r::done_states) ((r,row)::matrix) accepting todo
+                    aux (r::done_states) ((Atom(r),row)::matrix) accepting todo
     in
 
     let _, matrix, accepting = aux [] [] [] [r] in
 
-    DFA_Regexp.from_lts matrix r accepting
+    DFA_Regexp.from_matrix matrix (Atom(r)) accepting
 
 module NFA_Regexp = NFA.Make(OChar)(ORegexp)
 let rec nfa_from_regexp r = match r with
