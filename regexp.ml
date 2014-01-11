@@ -18,103 +18,116 @@ type regexp =
   | Star of regexp
 
 
-(* print a regexp *)
-let rec string_of_regexp (r:regexp) : string =
-    match r with
+(***
+ *** printing and related
+ ***)
+let rec string_of_regexp (r:regexp) : string = match r with
     | Zero -> "0"
     | One -> "1"
     | Symb(a) -> String.make 1 a
-    | Star(Zero as r) | Star(One as r) | Star(Symb(_) as r) -> (string_of_regexp r) ^ "*"
+    | Star(Zero as r) | Star(One as r) | Star(Symb(_) as r) ->
+            (string_of_regexp r) ^ "*"
     | Star(r) -> "(" ^ (string_of_regexp r) ^ ")*"
     | Sum(r1, r2) -> (string_of_regexp r1) ^ " + " ^ (string_of_regexp r2)
-    | Product((Sum(_) as r1), (Sum(_) as r2)) -> "(" ^ (string_of_regexp r1) ^")(" ^ (string_of_regexp r2) ^")"
-    | Product((Sum(_) as r1), r2) -> "(" ^ (string_of_regexp r1) ^")" ^ (string_of_regexp r2)
-    | Product(r1, (Sum(_) as r2)) -> (string_of_regexp r1) ^"(" ^ (string_of_regexp r2) ^")"
-    | Product(r1, r2) -> (string_of_regexp r1) ^ (string_of_regexp r2)
+    | Product((Sum(_) as r1), (Sum(_) as r2)) ->
+            "(" ^ (string_of_regexp r1) ^")(" ^ (string_of_regexp r2) ^")"
+    | Product((Sum(_) as r1), r2) ->
+            "(" ^ (string_of_regexp r1) ^")" ^ (string_of_regexp r2)
+    | Product(r1, (Sum(_) as r2)) ->
+            (string_of_regexp r1) ^"(" ^ (string_of_regexp r2) ^")"
+    | Product(r1, r2) ->
+            (string_of_regexp r1) ^ (string_of_regexp r2)
 
+(* main printing function *)
 let rec print_regexp (r:regexp) : unit =
     print_string (string_of_regexp r)
 
-
 (* print the raw regexp, with parenthesis everywhere *)
-let rec print_raw_regexp (r:regexp) : unit =
-    match r with
+let rec print_raw_regexp (r:regexp) : unit = match r with
     | Zero -> print_string "0"
     | One -> print_string "1"
     | Symb(a) -> print_char a
-    | Star(Zero as r) | Star(One as r) | Star(Symb(_) as r) -> print_raw_regexp r; print_string "*"
+    | Star(Zero as r) | Star(One as r) | Star(Symb(_) as r) ->
+            print_raw_regexp r; print_string "*"
     | Star(r) -> print_string "("; print_raw_regexp r; print_string ")*"
-    | Sum(r1, r2) -> print_string "(" ; print_raw_regexp r1; print_string " + "; print_raw_regexp r2 ; print_string ")"
-    | Product(r1, r2) -> print_string "(" ; print_raw_regexp r1; print_string "." ; print_raw_regexp r2 ; print_string ")"
+    | Sum(r1, r2) ->
+            print_string "(" ; print_raw_regexp r1; print_string " + ";
+            print_raw_regexp r2 ; print_string ")"
+    | Product(r1, r2) ->
+            print_string "(" ; print_raw_regexp r1; print_string "." ;
+            print_raw_regexp r2 ; print_string ")"
 
+
+(***
+ *** simplifying a regexp
+ ***)
 
 (* get all top-level summands from a regexp *)
-let rec get_summands (r:regexp): regexp list =
-  match r with
-  | Sum(r1, r2) -> List.rev_append (get_summands r1) (get_summands r2)
-        (* addition is commutative, so that the order is unimportant *)
-  | r -> [r]
+let rec get_summands (r:regexp): regexp list = match r with
+    | Sum(r1, r2) -> List.rev_append (get_summands r1) (get_summands r2)
+          (* addition is commutative, so that the order is unimportant *)
+    | r -> [r]
 
 (* its converse: convert a list into a sum *)
-let rec list2sum l = match l with
-  | [] -> Zero
-  | [r] -> r
-  | r::l -> Sum(r, list2sum l)
+let rec list2sum (l:regexp list) :regexp = match l with
+    | [] -> Zero
+    | [r] -> r
+    | r::l -> Sum(r, list2sum l)
 
 (* get all top-level factors from a regexp *)
-let rec get_factors (r:regexp): regexp list =
-  match r with
-  | Product(r1, r2) -> List.append (get_factors r1) (get_factors r2)
-  | r -> [r]
+let rec get_factors (r:regexp): regexp list = match r with
+    | Product(r1, r2) -> List.append (get_factors r1) (get_factors r2)
+    | r -> [r]
 
 (* its converse: convert a list into a product *)
-let rec list2product l = match l with
-  | [] -> One
-  | [r] -> r
-  | r::l -> Product(r, list2product l)
+let rec list2product (l:regexp list) : regexp = match l with
+    | [] -> One
+    | [r] -> r
+    | r::l -> Product(r, list2product l)
 
-
-(* simplify a regexp *)
 (* simplify a toplevel sum, without recursion *)
-let simplify_product r1 r2 =
+let simplify_product (r1:regexp) (r2:regexp) : regexp =
     let l = get_factors (Product(r1,r2)) in
     let l = List.filter (fun x -> x <> One) l in
     if List.mem Zero l
     then Zero
     else list2product l
+
 (* simplify a toplevel product, without recursion *)
-let simplify_sum r1 r2 =
+let simplify_sum (r1:regexp) (r2:regexp) : regexp =
     let l = get_summands (Sum(r1,r2)) in
     let l = List.filter (fun x -> x <> Zero) l in
     let l = List.sort compare l in
     let l = uniq l in
     list2sum l
-(* simplify recursively a regexp *)
+
+(* simplify a regexp recursively *)
 let rec simplify (r:regexp) : regexp = match r with
-  | One | Zero | Symb(_) -> r
-  | Star(r) ->
-          begin
-              let r = simplify r in
-              match r with
-                | Zero -> Zero
-                | One -> One
-                | Star(r) -> Star(r)
-                | _ -> Star(simplify r)
-          end
-  | Product(r1, r2) ->
-          let r1 = simplify r1 in
-          let r2 = simplify r2 in
-          simplify_product r1 r2
-  | Sum(r1, r2) ->
-          let r1 = simplify r1 in
-          let r2 = simplify r2 in
-          simplify_sum r1 r2
+    | One | Zero | Symb(_) -> r
+    | Star(r) ->
+            begin
+                let r = simplify r in
+                match r with
+                  | Zero -> Zero
+                  | One -> One
+                  | Star(r) -> Star(r)
+                  | _ -> Star(simplify r)
+            end
+    | Product(r1, r2) ->
+            let r1 = simplify r1 in
+            let r2 = simplify r2 in
+            simplify_product r1 r2
+    | Sum(r1, r2) ->
+            let r1 = simplify r1 in
+            let r2 = simplify r2 in
+            simplify_sum r1 r2
 
-
+(***
+ *** derivatives and related
+ **)
 
 (* check if the empty string is matched by a regexp *)
-let rec contains_epsilon (r:regexp) : bool =
-    match r with
+let rec contains_epsilon (r:regexp) : bool = match r with
     | One -> true
     | Zero -> false
     | Symb(_) -> false
@@ -142,21 +155,27 @@ let derivative (r:regexp) (a:symbol) : regexp =
                 | Zero | One -> Zero
                 | Symb(b) when b = a -> One
                 | Symb(_) -> Zero
-                | Sum(r1, r2) -> simplify_sum (derivative_mem r1 a) (derivative_mem r2 a)
-                | Product(r1, r2) -> if contains_epsilon r1
-                                     then
-                                         let p = simplify_product (derivative_mem r1 a) r2 in
-                                         simplify_sum p (derivative_mem r2 a)
-                                     else simplify_product (derivative_mem r1 a) r2
-                | Star(r) -> simplify_product (derivative_mem r a) (Star(r))
+                | Sum(r1, r2) -> simplify_sum (derivative_mem r1 a)
+                                              (derivative_mem r2 a)
+                | Product(r1, r2) ->
+                        if contains_epsilon r1
+                        then
+                            let p = simplify_product (derivative_mem r1 a)
+                                                     r2
+                            in simplify_sum p (derivative_mem r2 a)
+                        else
+                            simplify_product (derivative_mem r1 a) r2
+                | Star(r) -> simplify_product (derivative_mem r a)
+                                              (Star(r))
             in
-            mem := MP.add r d !mem; d
-    in derivative_mem r a
+            mem := MP.add r d !mem;
+            d
+    in
+    derivative_mem r a
 
-(* the word derivative *)
+(* the derivative with respect to a word *)
 let word_derivative (r:regexp) (w:string) : regexp =
-    let rec aux r l =
-        match l with
+    let rec aux r l = match l with
         | [] -> constant_part r
         | a::l -> aux (derivative r a) l
     in

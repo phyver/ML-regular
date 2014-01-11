@@ -9,26 +9,27 @@ let rec uniq l =
         | [r] -> List.rev (r::acc)
         | r1::r2::l when r1=r2 -> aux (r2::l) acc
         | r1::r2::l -> aux (r2::l) (r1::acc)
-    in aux l []
+    in
+    aux l []
 
 (* transform a string into a list of characters *)
 let explode s =
-    let rec exp i l =
-        if i < 0 then l else exp (i - 1) (s.[i] :: l)
+    let rec exp i l = if i<0 then l else exp (i-1) (s.[i]::l)
     in
-        exp (String.length s - 1) []
+    exp (String.length s - 1) []
 
 (* get index of an element in a list *)
 let idx x l =
     let rec aux l acc = match l with
-    | [] -> raise Not_found
-    | y::_ when x=y -> acc
-    | _::l -> aux l (acc+1)
+        | [] -> raise Not_found
+        | y::_ when x=y -> acc
+        | _::l -> aux l (acc+1)
     in
     aux l 1
 
 (* print a given number of characters *)
-let rec print_n_char c n = if n<=0 then () else (print_char c; print_n_char c (n-1))
+let rec print_n_char c n =
+    if n<=0 then () else (print_char c; print_n_char c (n-1))
 
 (* print a string with padding of spaces of given width *)
 let print_string_w s w =
@@ -44,19 +45,17 @@ let print_char_w a w =
 let xor a b = (a && not b) || (not a && b)
 
 
-(****************************************************************************
+(***
  *** module for ordered types and "to_string" function
  ***)
 module type OType = sig
-(*<<<1*)
     type t
     val compare : t -> t -> int
     val to_string : t -> string
 end
-(*>>>1*)
 
 
-(****************************************************************************
+(***
  *** we will need states to be closed under indexing, pairing and finite sets
  ***)
 type 'a generalized_state =
@@ -66,10 +65,11 @@ type 'a generalized_state =
     | Pair of 'a generalized_state * 'a generalized_state
     | FSet of 'a generalized_state list
 
+
 module GeneralizedState (State:OType)
   : OType with type t=State.t generalized_state
-(*<<<1*)
   = struct
+
     type t = State.t generalized_state
 
     let rec list_compare cmp l1 l2 = match l1,l2 with
@@ -94,7 +94,7 @@ module GeneralizedState (State:OType)
                 else if n1>n2 then +1
                 else compare s1 s2
         | In(_), _ -> -1
-        | _,In(_) -> +1
+        | _, In(_) -> +1
         | Pair(s1,s2), Pair(p1,p2) ->
                 let c = compare s1 p1 in
                 if c = 0
@@ -109,7 +109,8 @@ module GeneralizedState (State:OType)
         | Dummy -> "."
         | Atom(a) -> State.to_string a
         | In(n,s) -> (string_of_int n) ^ ":" ^ (to_string s)
-        | Pair(s1,s2) -> "<" ^ (to_string s1) ^ " , " ^ (to_string s2) ^ ">"
+        | Pair(s1,s2) ->
+                "<" ^ (to_string s1) ^ " , " ^ (to_string s2) ^ ">"
         | FSet(l) ->
                 begin
                     let lstr = List.map to_string l in
@@ -124,7 +125,4 @@ module GeneralizedState (State:OType)
                             "{" ^ hd ^ str ^ "}"
                 end
 end
-(*>>>1*)
-
-
 
