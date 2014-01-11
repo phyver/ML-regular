@@ -1,5 +1,5 @@
-open Regexp
-open Commands
+
+let verbose = ref true
 
 let main () =
     while true
@@ -7,16 +7,7 @@ let main () =
         print_string "> "; flush_all ();
         let lexbuf = Lexing.from_channel stdin in
         try
-            match Parser.toplevel Lexer.token lexbuf with
-            | Simplify(r) -> do_simplify r
-            | PrintRaw(r) -> do_print_raw r
-            | Derivative(r, s) -> do_derivative r s
-            | AllDerivatives(r) -> do_all_derivatives r
-            | Match(s,r) -> do_match r s
-            | Help -> do_help ()
-            | DerivativesAutomaton(r) -> do_derivatives_automaton r
-            | Equal(r1,r2) -> do_equal r1 r2
-
+            Parser.toplevel Lexer.token lexbuf
         with
             | Exit -> print_newline (); exit 0
             | Invalid_argument(_) ->  ()

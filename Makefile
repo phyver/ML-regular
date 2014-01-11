@@ -1,7 +1,7 @@
 OCAMLYACC=ocamlyacc
 OCAMLLEX=ocamllex
 OCAMLC=ocamlc
-OCAMLOPT=ocamlopt
+OCAMLOPT=ocamlopt -g
 OCAMLDEP=ocamldep
 
 INCLUDES=
@@ -9,8 +9,8 @@ INCLUDES=
 OCAMLFLAGS=$(INCLUDES)
 OCAMLDEPFLAGS=$(INCLUDES)
 
-BYTEFILES=misc.cmo regexp.cmo automata.cmo NFA.cmo lexer.cmo regexp2dfa.cmo commands.cmo parser.cmo
-OPTFILES=misc.cmx regexp.cmx automata.cmx NFA.cmx lexer.cmx regexp2dfa.cmx commands.cmx parser.cmx
+BYTEFILES=misc.cmo regexp.cmo automata.cmo NFA.cmo lexer.cmo regexp2dfa.cmo parser.cmo
+OPTFILES=misc.cmx regexp.cmx automata.cmx NFA.cmx lexer.cmx regexp2dfa.cmx parser.cmx
 
 # Common rules
 .SUFFIXES: .ml .mli .cmo .cmi .cmx
@@ -25,6 +25,9 @@ OPTFILES=misc.cmx regexp.cmx automata.cmx NFA.cmx lexer.cmx regexp2dfa.cmx comma
 		$(OCAMLOPT) $(OCAMLOPTFLAGS) -c $<
 
 all: opt
+
+prof: $(OPTFILES)
+	$(OCAMLOPT) -p $(INCLUDES) $(OPTFILES) -o prof prof.ml
 
 byte: $(BYTEFILES)
 	$(OCAMLC) $(INCLUDES) $(BYTEFILES) -o main main.ml
@@ -44,11 +47,13 @@ lexer.ml:
 clean:
 	rm -f *.cm[aoix] *.o
 	rm -f main
+	rm -f prof gmon.out
 
 very_clean:
 	rm -f *.cm[aoix] *.o
 	rm -f lexer.ml parser.ml parser.mli
 	rm -f main
+	rm -f prof gmon.out
 
 
 include .depend

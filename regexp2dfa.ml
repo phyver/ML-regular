@@ -19,7 +19,6 @@ end
 
 
 module DFA_Regexp = DFA(OChar)(ORegexp)
-module LTS = LTS(OChar)(GeneralizedState(ORegexp))
 
 
 (* transform a regexp into an automaton by computing its derivatives *)
@@ -31,12 +30,11 @@ let dfa_from_regexp (r:regexp) : DFA_Regexp.dfa =
     (* we compute all the derivatives and put them in an automaton
      *   - done_states contains all the states (regexps) whose derivative we have already computed
      *     the corresponding rows in the automaton are thus complete
-     *   - matrix contains the LTS of the automaton
+     *   - matrix contains the matrix of the automaton as association lists
      *   - accepting contains the list of accepting states we have already encountered
      *   - todo contains the states (regexps) whose derivatives we haven't yet computed
      *)
-    (* FIXME: use sets for done_states *)
-    let rec aux (done_states:regexp list) (matrix:LTS.lts) (accepting:regexp list) (todo:regexp list) =
+    let rec aux (done_states:regexp list) matrix (accepting:regexp list) (todo:regexp list) =
         match todo with
         | [] -> done_states, matrix, accepting
         | r::todo ->
@@ -47,22 +45,21 @@ let dfa_from_regexp (r:regexp) : DFA_Regexp.dfa =
                 if List.mem r done_states                   (* if we've already done r *)
                 then aux done_states matrix accepting todo  (* we continue *)
                 else                                        (* otherwise *)
-                    let matrix,todo =
-                        List.fold_left                      (* we compute all its derivatives *)
-                            (fun mt (a:char) ->             (* and add the corresponding transitions in "matrix" *)
-                                let matrix, todo = mt in
+                    let row,todo =
+                        List.fold_left
+                            (fun rt (a:char) ->
+                                let row,todo = rt in
                                 let ra = Regexp.simplify (Regexp.derivative r a) in
-                                let matrix = LTS.add (Atom(r)) a (Atom(ra)) matrix in
+                                let row = (a,ra)::row in
                                 let todo = ra::todo in
-                                matrix, todo
-                            )
-                            (matrix,todo)
+                                (row,todo))
+                            ([],todo)
                             actual_symbols
                     in
-                    aux (r::done_states) matrix accepting todo
+                    aux (r::done_states) ((r,row)::matrix) accepting todo
     in
 
-    let _, matrix, accepting = aux [] LTS.empty [] [r] in
+    let _, matrix, accepting = aux [] [] [] [r] in
 
     DFA_Regexp.from_lts matrix r accepting
 

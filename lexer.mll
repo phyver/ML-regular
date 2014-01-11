@@ -19,17 +19,22 @@ rule token = parse
   | str             { STR(get_string (Lexing.lexeme lexbuf)) }
   | '#'             { HASH }
   | '/'             { SLASH }
-  | 'D'             { D }
   | '?'             { QUESTION }
+  | '!'             { BANG }
   | '~'             { TILDE }
-  | "DA"            { DERIVATIVES_AUTOMATON }
-  | 'V'             { V }
+  | '['             { LBR }
+  | ']'             { RBR }
+  | '<'             { LT }
+  | '>'             { GT }
   | "=="            { DOUBLE_EQUAL }
+  | '&'             { AMPER }
+  | '|'             { PIPE }
 
   | [' ' '\t']      { token lexbuf }
   | '\n'            { NEWLINE }
   | eof             { EOF }
   | 'Q'             { EOF }
+  | 'V'             { V }
   | "{-*"            { comments 0 lexbuf }
 
 and comments level = parse
