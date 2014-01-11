@@ -1,7 +1,6 @@
 (* from regexp to dfa *)
 
 open Regexp
-open Automata
 
 (* we will need an automaton with regexps as states and characters as symbols
  * those are the corresponding OTypes *)
@@ -18,7 +17,7 @@ module OChar = struct
 end
 
 
-module DFA_Regexp = DFA(OChar)(ORegexp)
+module DFA_Regexp = DFA.Make(OChar)(ORegexp)
 
 
 (* transform a regexp into an automaton by computing its derivatives *)
@@ -63,3 +62,19 @@ let dfa_from_regexp (r:regexp) : DFA_Regexp.dfa =
 
     DFA_Regexp.from_lts matrix r accepting
 
+module NFA_Regexp = NFA.Make(OChar)(ORegexp)
+let rec nfa_from_regexp r = match r with
+    | Zero -> NFA_Regexp.zero_nfa
+    | One -> NFA_Regexp.one_nfa
+    | Symb(a) -> NFA_Regexp.symbol_nfa a
+    | Sum(r1,r2) ->
+            let d1 = nfa_from_regexp r1 in
+            let d2 = nfa_from_regexp r2 in
+            NFA_Regexp.union d1 d2
+    | Product(r1,r2) ->
+            let d1 = nfa_from_regexp r1 in
+            let d2 = nfa_from_regexp r2 in
+            NFA_Regexp.concat d1 d2
+    | Star(r) -> 
+            let d = nfa_from_regexp r in
+            NFA_Regexp.star d

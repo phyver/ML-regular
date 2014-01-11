@@ -24,11 +24,15 @@ rule token = parse
   | '~'             { TILDE }
   | '['             { LBR }
   | ']'             { RBR }
+  | '{'             { LCURL }
+  | '}'             { RCURL }
   | '<'             { LT }
   | '>'             { GT }
   | "=="            { DOUBLE_EQUAL }
   | '&'             { AMPER }
   | '|'             { PIPE }
+  | '.'             { DOT }
+  | "REV"           { REV }
 
   | [' ' '\t']      { token lexbuf }
   | '\n'            { NEWLINE }
