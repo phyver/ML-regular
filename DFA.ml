@@ -232,7 +232,8 @@ module Make(Symbol:OType) (State:OType)
             | [] -> s
             | a::w -> trans (next d s a) w
         in
-        is_accepting d (trans d.init w)
+        try is_accepting d (trans d.init w)
+        with Not_found -> false
 
     (* restrict an automaton to its reachable states *)
     let reachable (d:dfa) : dfa =

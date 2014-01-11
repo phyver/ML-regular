@@ -28,42 +28,48 @@ let dfa_from_regexp (r:regexp) : DFA_Regexp.dfa =
     let actual_symbols = Regexp.get_symbols r in
 
     (* we compute all the derivatives and put them in an automaton
-     *   - done_states contains all the states (regexps) whose derivative we have already computed
-     *     the corresponding rows in the automaton are thus complete
-     *   - matrix contains the matrix of the automaton as association lists
-     *   - accepting contains the list of accepting states we have already encountered
-     *   - todo contains the states (regexps) whose derivatives we haven't yet computed
+     *   - "done_states" contains all the states (regexps) whose derivative we
+     *      have already computed the corresponding rows in the automaton are
+     *      thus complete
+     *   - "matrix" contains the matrix of the automaton as association lists
+     *   - "accepting" contains the list of accepting states we have already
+     *      encountered
+     *   - "todo" contains the states (regexps) whose derivatives we haven't
+     *     yet computed
      *)
-    let rec aux (done_states:regexp list) matrix accepting (todo:regexp list) =
+    let rec aux (done_states:regexp list)
+                matrix
+                accepting
+                (todo:regexp list) =
         match todo with
-        | [] -> done_states, matrix, accepting
-        | r::todo ->
-                let accepting = if (Regexp.contains_epsilon r)
-                                then Atom(r)::accepting
-                                else accepting
-                in
-                if List.mem r done_states                   (* if we've already done r *)
-                then aux done_states matrix accepting todo  (* we continue *)
-                else                                        (* otherwise *)
-                    let row,todo =
-                        List.fold_left
-                            (fun rt (a:char) ->
-                                let row,todo = rt in
-                                let ra = Regexp.simplify (Regexp.derivative r a) in
-                                let row = (a,Atom(ra))::row in
-                                let todo = ra::todo in
-                                (row,todo))
-                            ([],todo)
-                            actual_symbols
+            | [] -> done_states, matrix, accepting
+            | r::todo ->
+                    let accepting = if (Regexp.contains_epsilon r)
+                                    then Atom(r)::accepting
+                                    else accepting
                     in
-                    aux (r::done_states) ((Atom(r),row)::matrix) accepting todo
+                    if List.mem r done_states                   (* if we've already done r *)
+                    then aux done_states matrix accepting todo  (* we continue *)
+                    else                                        (* otherwise *)
+                        let row,todo =
+                            List.fold_left
+                                (fun rt (a:char) ->
+                                    let row,todo = rt in
+                                    let ra = Regexp.simplify (Regexp.derivative r a) in
+                                    let row = (a,Atom(ra))::row in
+                                    (row,ra::todo)
+                            ) ([],todo) actual_symbols
+                        in
+                        aux (r::done_states) ((Atom(r),row)::matrix) accepting todo
     in
 
     let _, matrix, accepting = aux [] [] [] [r] in
 
     DFA_Regexp.from_matrix matrix (Atom(r)) accepting
 
+
 module NFA_Regexp = NFA.Make(OChar)(ORegexp)
+
 let rec nfa_from_regexp r = match r with
     | Zero -> NFA_Regexp.zero_nfa
     | One -> NFA_Regexp.one_nfa
@@ -76,6 +82,8 @@ let rec nfa_from_regexp r = match r with
             let d1 = nfa_from_regexp r1 in
             let d2 = nfa_from_regexp r2 in
             NFA_Regexp.concat d1 d2
-    | Star(r) -> 
+    | Star(r) ->
             let d = nfa_from_regexp r in
             NFA_Regexp.star d
+
+(* vim600:set textwidth=0: *)
