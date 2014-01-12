@@ -59,7 +59,7 @@ end
  *** we will need states to be closed under indexing, pairing and finite sets
  ***)
 type 'a generalized_state =
-    | Dummy
+    | Dummy of string
     | Atom of 'a
     | In of int*'a generalized_state
     | Pair of 'a generalized_state * 'a generalized_state
@@ -83,9 +83,9 @@ module GeneralizedState (State:OType)
                 else c
 
     let rec compare s1 s2 = match s1,s2 with
-        | Dummy, Dummy -> 0
-        | Dummy, _ -> -1
-        | _, Dummy -> +1
+        | Dummy(s1), Dummy(s2) -> String.compare s1 s2
+        | Dummy(_), _ -> -1
+        | _, Dummy(_) -> +1
         | Atom(a1), Atom(a2) -> State.compare a1 a2
         | Atom(_), _ -> -1
         | _, Atom(_) -> +1
@@ -106,7 +106,7 @@ module GeneralizedState (State:OType)
                 list_compare compare l1 l2
 
     let rec to_string = function
-        | Dummy -> "."
+        | Dummy(s) -> s
         | Atom(a) -> State.to_string a
         | In(n,s) -> (string_of_int n) ^ ":" ^ (to_string s)
         | Pair(s1,s2) ->

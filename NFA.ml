@@ -122,6 +122,10 @@ module type NFAType = sig
     type dfa
     type nfa
 
+    val from_matrix : (state * (symbol option * (state list)) list) list ->
+                      (state list) ->
+                      (state list) -> nfa
+
     val get_states : nfa -> state list
     val get_symbols : nfa -> symbol list
     val get_init : nfa -> state list
@@ -130,6 +134,8 @@ module type NFAType = sig
 
     val print : ?show_labels:bool -> nfa -> unit
 
+    val accepts : nfa -> symbol list -> bool
+
     val zero_nfa : nfa
     val one_nfa : nfa
     val symbol_nfa : symbol -> nfa
@@ -137,11 +143,6 @@ module type NFAType = sig
     val concat : nfa -> nfa -> nfa
     val star : nfa -> nfa
     val reverse : nfa -> nfa
-    val accepts : nfa -> symbol list -> bool
-
-    val from_matrix : (state * (symbol option * (state list)) list) list ->
-                      (state list) ->
-                      (state list) -> nfa
 
     val from_dfa : dfa -> nfa
     val to_dfa : nfa -> dfa
@@ -196,6 +197,47 @@ module Make (Symbol:OType) (State:OType)
         symbols : setsymbols        ;
         }
 
+    (* transform a matrix with init/accepting states into an automaton *)
+    let from_matrix (matrix:(state * (symbol option * (state list)) list) list)
+                    (init:state list)
+                    (accepting:state list) : nfa =
+
+        let matrix =
+            List.fold_left (fun matrix1 srow -> let s,row = srow in
+            List.fold_left (fun matrix2 at -> let a,st = at in
+            List.fold_left (fun matrix3 t ->
+                LTS.add s a t matrix3
+            ) matrix2 st
+            ) matrix1 row
+            ) LTS.empty matrix
+        in
+
+        let accepting =
+            List.fold_left (fun acc s ->
+                SetStates.add s acc
+            ) SetStates.empty accepting
+        in
+
+        let init =
+            List.fold_left (fun acc s ->
+                SetStates.add s acc
+            ) SetStates.empty init
+        in
+
+        let symbols =
+            List.fold_left (fun acc a ->
+                match a with
+                    | Some(a) -> SetSymbols.add (a) acc
+                    | None -> acc
+            ) SetSymbols.empty (LTS.get_labels matrix)
+        in
+        {
+            init = init             ;
+            matrix = matrix         ;
+            accepting = accepting   ;
+            symbols = symbols       ;
+        }
+
     let get_states (aut:nfa) : state list =
         SetStates.elements (LTS.get_states aut.matrix)
 
@@ -212,6 +254,7 @@ module Make (Symbol:OType) (State:OType)
         try
             SetStates.elements (LTS.next aut.matrix s a)
         with Not_found -> []
+
 
     (* print the automaton in table form
      * We can choose to show the labels as string, or simply with their number
@@ -300,6 +343,49 @@ module Make (Symbol:OType) (State:OType)
         (* we call the row printing function for all states *)
         List.iter print_row states
 
+    (* compute the epsilon closure of a set of states *)
+    let epsilon_closure (d:nfa) (ss:setstates) : setstates =
+        (* depth first search to get all the states accessible with
+         * epsilon transitions
+         *   - "closure" is a set of states, it contains the part of the
+         *     closure we've already explored
+         *   - "todo" is a list of states, it contains the states we have to
+         *   explore *)
+        let rec dfs closure todo =
+            match todo with
+                | [] -> closure
+                | s::todo ->
+                        if SetStates.mem s closure
+                        then
+                            dfs closure todo
+                        else
+                            let closure = SetStates.add s closure in
+                            let todo = List.rev_append (next d s None) todo in
+                            dfs closure todo
+        in
+        dfs SetStates.empty (SetStates.elements ss)
+
+
+    (* check if the automaton accepts a word *)
+    let accepts (d:nfa) (w:symbol list) : bool =
+        (* transition from a set of states to another set of states *)
+        let rec trans (ss:setstates) (w:symbol list) : setstates =
+            match w with
+                | [] -> epsilon_closure d ss
+                | a::w ->
+                    let ss = epsilon_closure d ss in
+                    let after =
+                        SetStates.fold (fun s acc ->
+                            try SetStates.union acc (LTS.next d.matrix s (Some(a)))
+                            with Not_found -> acc
+                        ) ss SetStates.empty
+                    in
+                    trans after w
+        in
+        let final = trans d.init w in
+        not (SetStates.is_empty (SetStates.inter d.accepting final))
+
+
     (* the "0" automaton *)
     let zero_nfa : nfa =
         {
@@ -311,21 +397,25 @@ module Make (Symbol:OType) (State:OType)
 
     (* the "1" automaton *)
     let one_nfa : nfa =
+        let dummy = Dummy("1") in
         {
-            init = SetStates.singleton Dummy        ;
+            init = SetStates.singleton dummy        ;
             matrix = LTS.empty                      ;
-            accepting = SetStates.singleton Dummy   ;
+            accepting = SetStates.singleton dummy   ;
             symbols = SetSymbols.empty              ;
         }
 
     (* the automaton that only accepts a symbol *)
     let symbol_nfa (a:symbol) : nfa =
+        let dummy_init = Dummy("1") in
+        let dummy_accept = Dummy(Symbol.to_string a) in
         {
-            init = SetStates.singleton (In(0,Dummy))                            ;
-            matrix = LTS.add (In(0,Dummy)) (Some(a)) (In(1,Dummy)) LTS.empty    ;
-            accepting = SetStates.singleton (In(1,Dummy))                       ;
-            symbols = SetSymbols.singleton (a)                                  ;
+            init = SetStates.singleton dummy_init                           ;
+            matrix = LTS.add dummy_init (Some(a)) dummy_accept LTS.empty    ;
+            accepting = SetStates.singleton dummy_accept                    ;
+            symbols = SetSymbols.singleton (a)                              ;
         }
+
 
     (* the union of two automata *)
     let union (d1:nfa) (d2:nfa) : nfa =
@@ -343,15 +433,16 @@ module Make (Symbol:OType) (State:OType)
 
         (* we add a new state, and add epsilon transitions to all the
          * starting states of d1 ... *)
+        let dummy = Dummy("U") in
         let matrix =
             List.fold_left (fun matrix i1 ->
-                LTS.add Dummy None (In(1,i1)) matrix
+                LTS.add dummy None (In(1,i1)) matrix
             ) matrix (get_init d1)
         in
         (* ... and to the starting states of d2 *)
         let matrix =
             List.fold_left (fun matrix i2 ->
-                LTS.add Dummy None (In(2,i2)) matrix
+                LTS.add dummy None (In(2,i2)) matrix
             ) matrix (get_init d2)
         in
 
@@ -368,7 +459,7 @@ module Make (Symbol:OType) (State:OType)
             ) d2.accepting accepting
         in
         {
-            init = SetStates.singleton Dummy                        ;
+            init = SetStates.singleton dummy                        ;
             matrix = matrix                                         ;
             accepting = accepting                                   ;
             symbols = SetSymbols.union (d1.symbols) (d2.symbols)    ;
@@ -450,88 +541,6 @@ module Make (Symbol:OType) (State:OType)
             matrix = matrix             ;
             accepting = d.init          ;
             symbols = d.symbols         ;
-        }
-
-    (* compute the epsilon closure of a set of states *)
-    let epsilon_closure (d:nfa) (ss:setstates) : setstates =
-        (* depth first search to get all the states accessible with
-         * epsilon transitions
-         *   - "closure" is a set of states, it contains the part of the
-         *     closure we've already explored
-         *   - "todo" is a list of states, it contains the states we have to
-         *   explore *)
-        let rec dfs closure todo =
-            match todo with
-                | [] -> closure
-                | s::todo ->
-                        if SetStates.mem s closure
-                        then
-                            dfs closure todo
-                        else
-                            let closure = SetStates.add s closure in
-                            let todo = List.rev_append (next d s None) todo in
-                            dfs closure todo
-        in
-        dfs SetStates.empty (SetStates.elements ss)
-
-    (* check if the automaton accepts a word *)
-    let accepts (d:nfa) (w:symbol list) : bool =
-        (* transition from a set of states to another set of states *)
-        let rec trans (ss:setstates) (w:symbol list) : setstates =
-            match w with
-                | [] -> epsilon_closure d ss
-                | a::w ->
-                    let ss = epsilon_closure d ss in
-                    let after =
-                        SetStates.fold (fun s acc ->
-                            try SetStates.union acc (LTS.next d.matrix s (Some(a)))
-                            with Not_found -> acc
-                        ) ss SetStates.empty
-                    in
-                    trans after w
-        in
-        let final = trans d.init w in
-        not (SetStates.is_empty (SetStates.inter d.accepting final))
-
-    (* transform a matrix with init/accepting states into an automaton *)
-    let from_matrix (matrix:(state * (symbol option * (state list)) list) list)
-                    (init:state list)
-                    (accepting:state list) : nfa =
-
-        let matrix =
-            List.fold_left (fun matrix1 srow -> let s,row = srow in
-            List.fold_left (fun matrix2 at -> let a,st = at in
-            List.fold_left (fun matrix3 t ->
-                LTS.add s a t matrix3
-            ) matrix2 st
-            ) matrix1 row
-            ) LTS.empty matrix
-        in
-
-        let accepting =
-            List.fold_left (fun acc s ->
-                SetStates.add s acc
-            ) SetStates.empty accepting
-        in
-
-        let init =
-            List.fold_left (fun acc s ->
-                SetStates.add s acc
-            ) SetStates.empty init
-        in
-
-        let symbols =
-            List.fold_left (fun acc a ->
-                match a with
-                    | Some(a) -> SetSymbols.add (a) acc
-                    | None -> acc
-            ) SetSymbols.empty (LTS.get_labels matrix)
-        in
-        {
-            init = init             ;
-            matrix = matrix         ;
-            accepting = accepting   ;
-            symbols = symbols       ;
         }
 
     (* transform a deterministic automaton into a non-deterministic one *)

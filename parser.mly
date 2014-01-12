@@ -1,7 +1,7 @@
 %{
 open Misc
 open Regexp
-open Regexp2dfa
+open Conversions
 
 let verbose = ref false
 

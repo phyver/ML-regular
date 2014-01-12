@@ -106,26 +106,30 @@ module type DFAType = sig
         type state
         type dfa
 
-        val get_states : dfa -> state list
-        val get_symbols : dfa -> symbol list
-        val get_init : dfa -> state
-        val is_accepting : dfa -> state -> bool
-        val next : dfa -> state -> symbol -> state
-        val accepts : dfa -> symbol list -> bool
-
         val from_matrix : ((state * ((symbol*state) list)) list ) ->
                           state ->
                           state list ->
                           dfa
 
+        val get_states : dfa -> state list
+        val get_symbols : dfa -> symbol list
+        val get_init : dfa -> state
+        val is_accepting : dfa -> state -> bool
+        val next : dfa -> state -> symbol -> state
+
         val print : ?show_labels:bool -> dfa -> unit
+
+        val accepts : dfa -> symbol list -> bool
 
         val reachable : dfa -> dfa
         val totalify : dfa -> dfa
+        val collapse : dfa -> dfa
         val minimize : dfa -> dfa
+
         val complement : dfa -> dfa
         val union : dfa -> dfa -> dfa
         val intersection : dfa -> dfa -> dfa
+
         val subset : dfa -> dfa -> bool
         val equal : dfa -> dfa -> bool
 end
@@ -163,25 +167,6 @@ module Make(Symbol:OType) (State:OType)
         symbols : SetSymbols.t      ;
         }
 
-
-    (* utility: get the set of symbols of the automaton *)
-    let get_symbols (d:dfa) : symbol list = SetSymbols.elements d.symbols
-
-    (* utility: get the set of states of the automaton *)
-    let get_states (d:dfa) : state list =
-        let rec aux l acc = match l with
-            | [] -> List.rev (d.init::acc)
-            | s::_ when s=d.init -> raise Exit
-            | s::_ when s>d.init -> raise Exit
-            | s::l -> aux l (s::acc)
-        in
-        let states = LTS.get_states d.matrix in
-        try aux states []
-        with Exit -> states
-
-    (* utility: get initial state *)
-    let get_init (d:dfa) : state = d.init
-
     (* utility: convert an LTS, with init atomic_state and list of states into an automaton *)
     let from_matrix (matrix:(state*((symbol*state) list)) list)
                     (init:state)
@@ -218,6 +203,25 @@ module Make(Symbol:OType) (State:OType)
             symbols = symbols       ;
         }
 
+
+    (* utility: get the set of symbols of the automaton *)
+    let get_symbols (d:dfa) : symbol list = SetSymbols.elements d.symbols
+
+    (* utility: get the set of states of the automaton *)
+    let get_states (d:dfa) : state list =
+        let rec aux l acc = match l with
+            | [] -> List.rev (d.init::acc)
+            | s::_ when s=d.init -> raise Exit
+            | s::_ when s>d.init -> raise Exit
+            | s::l -> aux l (s::acc)
+        in
+        let states = LTS.get_states d.matrix in
+        try aux states []
+        with Exit -> states
+
+    (* utility: get initial state *)
+    let get_init (d:dfa) : state = d.init
+
     (* check if a state is accepting *)
     let is_accepting (d:dfa) (s:state) : bool =
         SetStates.mem s d.accepting
@@ -225,50 +229,6 @@ module Make(Symbol:OType) (State:OType)
     (* next atomic_state *)
     let next (d:dfa) (s:state) (a:symbol) : state =
         LTS.next d.matrix s a
-
-    (* check if an automaton accepts a word *)
-    let accepts (d:dfa) (w:symbol list) : bool =
-        let rec trans (s:state) (w:symbol list) : state = match w with
-            | [] -> s
-            | a::w -> trans (next d s a) w
-        in
-        try is_accepting d (trans d.init w)
-        with Not_found -> false
-
-    (* restrict an automaton to its reachable states *)
-    let reachable (d:dfa) : dfa =
-
-        (* set of symbols used in the automaton *)
-        let actual_symbols = get_symbols d in
-
-        (* depth first search to compute the reachable states of the automaton *)
-        let rec dfs current visited =
-            if SetStates.mem current visited
-            then visited
-            else List.fold_left
-                    (fun visited a ->
-                        try dfs (next d current a) (SetStates.add current visited)
-                        with Not_found -> visited
-                    )
-                    visited
-                    actual_symbols
-        in
-
-        let reachable_states = dfs (get_init d) SetStates.empty in
-
-        (* we remove the transition that are not reachable
-         * Note that it is not necessary to check reachability of the source
-         * and target: either they both are reachable, or none of them is *)
-        let matrix = LTS.filter
-                        (fun s a t -> SetStates.mem s reachable_states)
-                        d.matrix
-        in
-        {
-            init = get_init d                                           ;
-            matrix = matrix                                             ;
-            accepting = SetStates.inter d.accepting reachable_states    ;
-            symbols = d.symbols                                         ;
-        }
 
     (* print the automaton in table form
      * We can choose to show the labels as string, or simply with their number
@@ -335,6 +295,50 @@ module Make(Symbol:OType) (State:OType)
         (* we call the row printing function for all states *)
         List.iter print_row actual_states
 
+    (* check if an automaton accepts a word *)
+    let accepts (d:dfa) (w:symbol list) : bool =
+        let rec trans (s:state) (w:symbol list) : state = match w with
+            | [] -> s
+            | a::w -> trans (next d s a) w
+        in
+        try is_accepting d (trans d.init w)
+        with Not_found -> false
+
+    (* restrict an automaton to its reachable states *)
+    let reachable (d:dfa) : dfa =
+
+        (* set of symbols used in the automaton *)
+        let actual_symbols = get_symbols d in
+
+        (* depth first search to compute the reachable states of the automaton *)
+        let rec dfs current visited =
+            if SetStates.mem current visited
+            then visited
+            else List.fold_left
+                    (fun visited a ->
+                        try dfs (next d current a) (SetStates.add current visited)
+                        with Not_found -> visited
+                    )
+                    visited
+                    actual_symbols
+        in
+
+        let reachable_states = dfs (get_init d) SetStates.empty in
+
+        (* we remove the transition that are not reachable
+         * Note that it is not necessary to check reachability of the source
+         * and target: either they both are reachable, or none of them is *)
+        let matrix = LTS.filter
+                        (fun s a t -> SetStates.mem s reachable_states)
+                        d.matrix
+        in
+        {
+            init = get_init d                                           ;
+            matrix = matrix                                             ;
+            accepting = SetStates.inter d.accepting reachable_states    ;
+            symbols = d.symbols                                         ;
+        }
+
 
     (* check if a transition exists *)
     let is_defined d s a = try ignore (next d s a) ; true
@@ -361,7 +365,7 @@ module Make(Symbol:OType) (State:OType)
         let matrix = LTS.map (fun s -> In(0,s)) d.matrix in
 
         (* we define a new, different state *)
-        let new_state = In(1,Dummy) in
+        let new_state = In(1,Dummy("sink")) in
 
         (* we add loops around this state *)
         let matrix = List.fold_left
@@ -422,13 +426,10 @@ module Make(Symbol:OType) (State:OType)
         end)
 
     (* minimization function *)
-    let minimize (d:dfa) : dfa =
+    let collapse (d:dfa) : dfa =
 
         (* states *)
         let states = get_states d in
-
-        (* we first restrict to reachable states *)
-        let d = reachable d in
 
         (* the set of pairs (x,y) with x>=y, where x and y are states *)
         let all_pairs =
@@ -562,6 +563,7 @@ module Make(Symbol:OType) (State:OType)
             symbols = d.symbols     ;
         }
 
+    let minimize (d:dfa) : dfa = collapse (reachable d)
 
     (* complement of an automaton
      * we just change the accepting states *)

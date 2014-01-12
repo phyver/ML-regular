@@ -6,6 +6,10 @@ module type NFAType =
     type dfa
     type nfa
 
+    val from_matrix : (state * (symbol option * (state list)) list) list ->
+                      (state list) ->
+                      (state list) -> nfa
+
     val get_states : nfa -> state list
     val get_symbols : nfa -> symbol list
     val get_init : nfa -> state list
@@ -14,6 +18,8 @@ module type NFAType =
 
     val print : ?show_labels:bool -> nfa -> unit
 
+    val accepts : nfa -> symbol list -> bool
+
     val zero_nfa : nfa
     val one_nfa : nfa
     val symbol_nfa : symbol -> nfa
@@ -21,11 +27,7 @@ module type NFAType =
     val concat : nfa -> nfa -> nfa
     val star : nfa -> nfa
     val reverse : nfa -> nfa
-    val accepts : nfa -> symbol list -> bool
 
-    val from_matrix : (state * (symbol option * (state list)) list) list ->
-                      (state list) ->
-                      (state list) -> nfa
     val from_dfa : dfa -> nfa
     val to_dfa : nfa -> dfa
   end

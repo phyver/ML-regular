@@ -1,4 +1,7 @@
-(* from regexp to dfa *)
+(***
+ *** conversions between automata and regular expressions
+ **)
+
 
 open Regexp
 open Misc
@@ -19,6 +22,11 @@ end
 
 
 module DFA_Regexp = DFA.Make(OChar)(ORegexp)
+module NFA_Regexp = NFA.Make(OChar)(ORegexp)
+
+(* in order to convert an NFA to a regexp, we will need automata where symbols
+ * are regular expressions *)
+module Automaton_Regexp = NFA.Make(ORegexp)(ORegexp)
 
 
 (* transform a regexp into an automaton by computing its derivatives *)
@@ -68,8 +76,6 @@ let dfa_from_regexp (r:regexp) : DFA_Regexp.dfa =
     DFA_Regexp.from_matrix matrix (Atom(r)) accepting
 
 
-module NFA_Regexp = NFA.Make(OChar)(ORegexp)
-
 let rec nfa_from_regexp r = match r with
     | Zero -> NFA_Regexp.zero_nfa
     | One -> NFA_Regexp.one_nfa
@@ -85,5 +91,8 @@ let rec nfa_from_regexp r = match r with
     | Star(r) ->
             let d = nfa_from_regexp r in
             NFA_Regexp.star d
+
+
+
 
 (* vim600:set textwidth=0: *)
