@@ -2,9 +2,15 @@
 open Parser
 
 let get_string s = String.sub s 1 ((String.length s) - 2)
+let get_index s = String.sub s 3 ((String.length s) - 3)
+let get_state_index s = String.sub s 1 ((String.length s) - 1)
 }
 let symbol = [ 'a'-'z' ]
 let str = '"' symbol* '"'
+let reg = "REG" [ '0'-'9' ]+
+let dfa = "DFA" [ '0'-'9' ]+
+let nfa = "NFA" [ '0'-'9' ]+
+let state = "s" [ '0'-'9' ]+
 
 rule token = parse
   | '('             { LPAR }
@@ -33,6 +39,14 @@ rule token = parse
   | '|'             { PIPE }
   | '.'             { DOT }
   | "REV"           { REV }
+  | reg             { REG(int_of_string (get_index (Lexing.lexeme lexbuf))) }
+  | dfa             { DFA(int_of_string (get_index (Lexing.lexeme lexbuf))) }
+  | nfa             { NFA(int_of_string (get_index (Lexing.lexeme lexbuf))) }
+  | state           { STATE(int_of_string (get_state_index (Lexing.lexeme lexbuf))) }
+  | ":="            { AFFECT }
+  | "TABLE"         { TABLE }
+  | "->"            { ARROW }
+  | "_"             { UNDERSCORE }
 
   | [' ' '\t']      { token lexbuf }
   | '\n'            { NEWLINE }

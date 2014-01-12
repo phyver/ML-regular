@@ -10,8 +10,9 @@ let main () =
             Parser.toplevel Lexer.token lexbuf
         with
             | Exit -> print_newline (); exit 0
-            | Invalid_argument(_) ->  ()
-            | Failure(msg) -> print_string ("problem: " ^ msg ^ "\n")
+            | Invalid_argument(s) ->  print_endline s
+            | Failure(msg) -> print_endline ("problem: " ^ msg)
+            | Parsing.Parse_error -> print_endline "parse error"
     done
 
 let _ = Printexc.print main ()
