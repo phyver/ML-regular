@@ -95,7 +95,7 @@ module LTS (Label:OType)(State:OType)
     let map (f:state -> state) (m:lts) =
         fold (fun s l t m -> add (f s) l (f t) m) m Matrix.empty
 
-    (* TODO prefix, remove_useless *)
+    (* TODO prefix *)
 end
 
 
@@ -124,11 +124,12 @@ module type DFAType = sig
         val accepts : dfa -> symbol list -> bool
 
         val reachable : dfa -> dfa
-        val totalify : dfa -> dfa
-        val collapse : dfa -> dfa
+        val make_total : ?symbols:symbol list -> dfa -> dfa
+        val accessible : dfa -> dfa
+        (* TODO co_accessible : dfa -> dfa *)
         val minimize : dfa -> dfa
 
-        val complement : dfa -> dfa
+        val complement : ?symbols:symbol list -> dfa -> dfa
         val union : dfa -> dfa -> dfa
         val intersection : dfa -> dfa -> dfa
 
@@ -358,10 +359,24 @@ module Make(Symbol:OType) (State:OType)
 
     (* make a dfa total *)
     (* TODO add an optionnal parameter to specify the alphabet *)
-    let totalify (d:dfa) : dfa =
+    let make_total ?(symbols=[]) (d:dfa) : dfa =
 
         (* states and symbols of the automaton *)
-        let symbols = get_symbols d in
+        (*
+        let symbols = uniq (List.sort Symbol.compare symbols) in
+        let symbols = merge_inter symbols (get_symbols d) in
+        *)
+        let new_symbols =
+            List.fold_left (fun acc a -> SetSymbols.add a acc) d.symbols symbols
+        in
+        let d = {
+            init = d.init               ;
+            matrix = d.matrix           ;
+            accepting = d.accepting     ;
+            symbols = new_symbols       ;
+        }
+        in
+
         let states = get_states d in
 
         (* we rename all the existing states *)
@@ -429,7 +444,7 @@ module Make(Symbol:OType) (State:OType)
         end)
 
     (* minimization function *)
-    let collapse (d:dfa) : dfa =
+    let accessible (d:dfa) : dfa =
 
         (* states *)
         let states = get_states d in
@@ -537,7 +552,7 @@ module Make(Symbol:OType) (State:OType)
         (* we can now easily compute a representent for any atomic_state *)
         let repr (s:state) : state = MapSt.find s representants in
 
-        (* we collapse the automaton using this *)
+        (* we accessible the automaton using this *)
         let matrix = LTS.map repr d.matrix in
 
         (* we also replace each accepting atomic_state by its representant,
@@ -566,13 +581,13 @@ module Make(Symbol:OType) (State:OType)
             symbols = d.symbols     ;
         }
 
-    let minimize (d:dfa) : dfa = collapse (reachable d)
+    let minimize (d:dfa) : dfa = accessible (reachable d)
 
     (* complement of an automaton
      * we just change the accepting states *)
     (* TODO add an optionnal parameter to specify the alphabet *)
-    let complement d =
-        let d = totalify d in
+    let complement ?(symbols=[]) (d:dfa) : dfa =
+        let d = make_total ~symbols:symbols d in
         let states =
             List.fold_left
                 (fun acc s -> SetStates.add s acc)

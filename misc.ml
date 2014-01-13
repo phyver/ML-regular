@@ -12,6 +12,16 @@ let rec uniq l =
     in
     aux l []
 
+(* compute the intersection of 2 sorted lists *)
+let merge_inter l1 l2 =
+    let rec aux l1 l2 acc = match l1,l2 with
+        | [],l | l,[] -> List.rev_append acc l
+        | a1::_, a2::l2 when a1>a2 -> aux l1 l2 (a1::acc)
+        | a1::l1, a2::_ when a1<a2 -> aux l1 l2 (a2::acc)
+        | a1::l1, a2::l2 (* when a1=a2 *) -> aux l1 l2 acc
+    in
+    aux l1 l2 []
+
 (* transform a string into a list of characters *)
 let explode s =
     let rec exp i l = if i<0 then l else exp (i-1) (s.[i]::l)

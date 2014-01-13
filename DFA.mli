@@ -19,11 +19,11 @@ module type DFAType = sig
     val accepts : dfa -> symbol list -> bool
 
     val reachable : dfa -> dfa
-    val totalify : dfa -> dfa
-    val collapse : dfa -> dfa
+    val make_total : ?symbols:symbol list -> dfa -> dfa
+    val accessible : dfa -> dfa
     val minimize : dfa -> dfa
 
-    val complement : dfa -> dfa
+    val complement : ?symbols:symbol list -> dfa -> dfa
     val union : dfa -> dfa -> dfa
     val intersection : dfa -> dfa -> dfa
 

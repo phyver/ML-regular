@@ -10,7 +10,6 @@ let do_help () =
     [
 "Commands:";
 "  > regexp                     simplified form of the regexp";
-"  > (#regexp)                  raw form of the regexp";
 "  > dfa                        print the table of the automaton";
 "";
 "  > REG<n> := regexp           define a regexp";
@@ -36,6 +35,7 @@ let do_help () =
 "    regexp / \"string\"            the word derivative of the regexp wrt to the string";
 "    TRANS regexp                 the transposition of the regexp";
 "    PREF regexp                  regexp of prefixes";
+"A regexp can be of the form (# regexp) to prevent simplifying it.";
 "";
 "dfa are obtained from:";
 "     [regexp]                  automaton of the derivatives of the regexp";
@@ -43,6 +43,7 @@ let do_help () =
 "     dfa & dfa                 intersection of the two automata";
 "     dfa | dfa                 union of the two automata";
 "     ~dfa                      complement of the automaton";
+"     ~dfa / {a,b,c...}         complement of the automaton, with additional symbols";
 "     !dfa                      minimization of the automaton";
 "     [nfa]                     determinisation of the automaton";
 "     DFA<n>                    user defined automaton";
@@ -144,7 +145,6 @@ let make_nfa (symbols:char option list)
 
 toplevel:
     | QUESTION                                      { do_help() }
-    | LPAR HASH raw_regexp RPAR                     { print_raw_regexp $3; print_newline() }
 
     | dfa NEWLINE                                   { DFA_Regexp.print ~show_labels:!verbose $1 ; print_newline () }
     | nfa NEWLINE                                   { NFA_Regexp.print ~show_labels:!verbose $1 ; print_newline () }
@@ -178,18 +178,25 @@ assertion:
 dfa:
     | LPAR dfa RPAR             { $2 }
     | LBR regexp RBR            { dfa_from_regexp $2 }
-    | LBR HASH raw_regexp RBR   { dfa_from_regexp $3 }
-    | TILDE dfa                 { DFA_Regexp.complement $2 }
+    | TILDE dfa alphabet        { DFA_Regexp.complement $2 ~symbols:$3}
     | BANG dfa                  { DFA_Regexp.minimize $2 }
     | dfa PIPE dfa              { DFA_Regexp.union $1 $3 }
     | dfa AMPER dfa             { DFA_Regexp.intersection $1 $3 }
     | LBR nfa RBR               { NFA_Regexp.to_dfa $2 }
     | DFA                       { get_DFA $1 }
 
+alphabet:
+    |                               { [] }
+    | SLASH LCURL elements RCURL    { print_endline "alphabet"; $3 }
+elements:
+    |                       { [] }
+    | SYMB                  { [$1] }
+    | SYMB COMMA elements   { $1::$3 }
+
+
 nfa:
     | LPAR nfa RPAR                 { $2 }
     | LCURL regexp RCURL            { nfa_from_regexp $2 }
-    | LCURL HASH raw_regexp RCURL   { nfa_from_regexp $3 }
     | nfa PIPE nfa                  { NFA_Regexp.union $1 $3 }
     | nfa STAR                      { NFA_Regexp.star $1 }
     | nfa DOT nfa                   { NFA_Regexp.concat $1 $3 }
@@ -198,7 +205,8 @@ nfa:
     | NFA                           { get_NFA $1 }
 
 regexp:
-    | raw_regexp { simplify $1 }
+    | raw_regexp                    { simplify $1 }
+    | LPAR HASH raw_regexp RPAR     { $3 }
 
 raw_regexp:
     | sum_regexp { $1 }
