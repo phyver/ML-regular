@@ -54,6 +54,12 @@ let print_char_w a w =
 (* xor function: exactly one of a and b is true *)
 let xor a b = (a && not b) || (not a && b)
 
+(* shuffle a list randomly *)
+let shuffle l =
+    let l = List.map (fun x -> (Random.nativeint Nativeint.max_int, x)) l in
+    let l = List.sort compare l in
+    List.map snd l
+
 
 (***
  *** module for ordered types and "to_string" function

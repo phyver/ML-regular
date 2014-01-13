@@ -88,9 +88,129 @@ let rec nfa_from_regexp r = match r with
             NFA_Regexp.star d
 
 
-(* TODO regexp from nfa *)
+(* regexp from nfa *)
+(* FIXME: probably not very optimized *)
+module IntIntMap = Map.Make(struct type t=int*int let compare=compare end)
+type mat = regexp IntIntMap.t
+
+let regexp_from_nfa ?(random=true) aut : regexp =
+
+    let states = NFA_Regexp.get_states aut in
+    let symbols = NFA_Regexp.get_symbols aut in
+    let id s = idx s states in
+
+    (*
+    let print_matrix s matrix = 
+        print_endline (">>> "^s);
+        IntIntMap.iter
+            (fun st r -> print_int (fst st) ;
+                         print_string " --" ;
+                         print_regexp r ;
+                         print_string "--> " ;
+                         print_int (snd st) ;
+                         print_newline ()
+            ) matrix;
+        print_endline "<<<"
+    in
+    *)
+
+    (* we construct the matrix with transition "Symb(a)" from the automaton *)
+    let matrix =
+        List.fold_left (fun matrix s -> let is = id s in
+        List.fold_left (fun matrix a ->
+            try
+                let ts = NFA_Regexp.next aut s (Some(a)) in
+                List.fold_left (fun matrix t -> let it = id t in
+                    let entry = try IntIntMap.find (is,it) matrix
+                                with Not_found -> Zero
+                    in
+                    IntIntMap.add (is,it) (simplify_sum entry (Symb(a))) matrix
+                ) matrix ts
+            with Not_found -> matrix
+        ) matrix symbols
+        ) IntIntMap.empty states
+    in
+    (* we also add the regexp corresponding to epsilon transititions *)
+    let matrix =
+        List.fold_left (fun matrix s -> let is = id s in
+            try
+                let ts = NFA_Regexp.next aut s None in
+                List.fold_left (fun matrix t -> let it = id t in
+                    let entry = try IntIntMap.find (is,it) matrix
+                                with Not_found -> Zero
+                    in
+                    IntIntMap.add (is,it) (simplify_sum entry One) matrix
+                ) matrix ts
+            with Not_found -> matrix
+        ) matrix states
+    in
+
+    (* we add a new initial state (-1) and a new final state (-2) *)
+    let init = -1 in
+    let matrix =
+        List.fold_left (fun matrix s -> let is = id s in
+            IntIntMap.add (init,is) One matrix
+        ) matrix (NFA_Regexp.get_init aut)
+    in
+    let final = -2 in
+    let matrix =
+        List.fold_left (fun matrix s -> let is = id s in
+            IntIntMap.add (is,final) One matrix
+        ) matrix (List.filter (NFA_Regexp.is_accepting aut) states)
+    in
+
+    (* remove a state from the matrix *)
+    let states = List.map id states in
+    let states = if random then shuffle states else states in
+
+    (* we should somehow return the new list of states to avoid going through
+     * all of them all the time... *)
+    let remove_state matrix x =
+        let xx = try Star(IntIntMap.find (x,x) matrix)
+                 with Not_found -> One
+        in
+        let matrix =
+            List.fold_left (fun matrix s ->
+            List.fold_left (fun matrix t ->
+                try
+                    let sx = IntIntMap.find (s,x) matrix in
+                    let xt = IntIntMap.find (x,t) matrix in
+                    let st = try IntIntMap.find (s,t) matrix
+                             with Not_found -> Zero
+                    in
+                    let new_st = simplify_product sx (Product(xx,xt)) in
+                    let new_st = simplify_sum new_st st in
+                    IntIntMap.add (s,t) new_st matrix
+                with Not_found -> matrix
+            ) matrix (init::final::states)
+            ) matrix (init::final::states)
+        in
+        List.fold_left (fun matrix s ->
+            let matrix = IntIntMap.remove (s,x) matrix in
+            let matrix = IntIntMap.remove (x,s) matrix in
+            matrix
+        ) matrix (init::final::states)
+    in
+
+    (* remove all the states from the matrix *)
+    let matrix = List.fold_left remove_state matrix states in
+
+    (* we get the only entry from the initial state to the final state *)
+    assert (1 = IntIntMap.cardinal matrix);
+    IntIntMap.find (init,final) matrix
 
 
+(* the same, but we try it many times and keep the smallest regexp *)
+let regexp_from_nfa aut =
+    let rec aux n r =
+        if n<0
+        then r
+        else let rr = regexp_from_nfa aut in
+             if String.length (string_of_regexp r) < String.length (string_of_regexp rr)
+             then aux (n-1) r
+             else aux (n-1) rr
+    in
+    aux 1000 (regexp_from_nfa aut)
 
 
 

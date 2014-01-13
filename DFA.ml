@@ -358,7 +358,6 @@ module Make(Symbol:OType) (State:OType)
 
 
     (* make a dfa total *)
-    (* TODO add an optionnal parameter to specify the alphabet *)
     let make_total ?(symbols=[]) (d:dfa) : dfa =
 
         (* states and symbols of the automaton *)
@@ -585,7 +584,6 @@ module Make(Symbol:OType) (State:OType)
 
     (* complement of an automaton
      * we just change the accepting states *)
-    (* TODO add an optionnal parameter to specify the alphabet *)
     let complement ?(symbols=[]) (d:dfa) : dfa =
         let d = make_total ~symbols:symbols d in
         let states =

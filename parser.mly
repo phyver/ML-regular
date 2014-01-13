@@ -35,6 +35,7 @@ let do_help () =
 "    regexp / \"string\"            the word derivative of the regexp wrt to the string";
 "    TRANS regexp                 the transposition of the regexp";
 "    PREF regexp                  regexp of prefixes";
+"    <nfa>                        the regexp associated to an automaton";
 "A regexp can be of the form (# regexp) to prevent simplifying it.";
 "";
 "dfa are obtained from:";
@@ -229,6 +230,7 @@ atomic_regexp:
     | TRANS atomic_regexp           { transpose $2 }
     | atomic_regexp SLASH STR       { word_derivative $1 $3 }
     | PREF atomic_regexp            { prefix $2 }
+    | LT nfa GT                     { regexp_from_nfa $2 }
 
 
 
