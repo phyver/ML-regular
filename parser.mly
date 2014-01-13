@@ -18,20 +18,24 @@ let do_help () =
 "  > NFA<n> := nfa              define a non-deterministic automaton";
 "  > NFA<n> := \\n table         define a non-deterministic automaton";
 "";
-"  > regexp / \"string\"          print the word derivative of the regexp wrt to the string";
 "  > \"string\" ~ regexp          matches the string against the regexp";
 "  > \"string\" ~ dfa             matches the string against the automaton";
 "  > \"string\" ~ nfa             matches the string against the automaton";
-"";
 "  > dfa == dfa                 test if the two automata are equal";
 "  > dfa > dfa                  test if the first automaton has a larger language than the second one";
 "  > dfa < dfa                  test if the second automaton has a larger language than the first one";
+"  > INFINITE regexp            test if the regexp has an infinite language";
+"  > EMPTY regexp               test if the regexp has an empty language";
 "";
 "  > Q                      quit";
 "  > V                      toggle printing labels of states in automata";
 "  > ?                      help message";
 "";
-"Regexp are obtained from 0, 1, lowercase letters, +, * and concatenation, and user defined regexp (REG<n>)";
+"Basic regexp are obtained from 0, 1, lowercase letters, +, * and concatenation, and user defined regexp (REG<n>)";
+"Extended regexps are obtained from";
+"    regexp / \"string\"            the word derivative of the regexp wrt to the string";
+"    TRANS regexp                 the transposition of the regexp";
+"    PREF regexp                  regexp of prefixes";
 "";
 "dfa are obtained from:";
 "     [regexp]                  automaton of the derivatives of the regexp";
@@ -49,7 +53,7 @@ let do_help () =
 "     nfa | nfa                 union of the two automata";
 "     nfa*                      star of the automaton";
 "     nfa . nfa                 concatenation of the automata";
-"     REV nfa                   reversal of the automaton";
+"     TRANS nfa                 reversal of the automaton";
 "     {dfa}                     the same automaton, seen as non-deterministic";
 "     NFA<n>                    user defined automaton";
 "";
@@ -78,40 +82,6 @@ let get_DFA n =
 let get_NFA n =
     try IntMap.find n !list_NFA
     with Not_found -> raise(Invalid_argument("no such automaton NFA"^(string_of_int n)))
-
-let do_derivative r s =
-    let rd = simplify (word_derivative r s) in
-    print_string (s^" derivative: "); print_regexp rd; print_newline ()
-
-let do_match_regexp s r =
-    if match_regexp s r
-    then print_endline "True"
-    else print_endline "False"
-
-let do_match_dfa s d =
-    if DFA_Regexp.accepts d (explode s)
-    then print_endline "True"
-    else print_endline "False"
-
-let do_equal d1 d2 =
-    if DFA_Regexp.equal d1 d2
-    then print_endline "True"
-    else print_endline "False"
-
-let do_subset d1 d2 =
-    if DFA_Regexp.subset d1 d2
-    then print_endline "True"
-    else print_endline "False"
-
-let do_nfa r =
-    let d = nfa_from_regexp (simplify r) in
-    NFA_Regexp.print ~show_labels:!verbose d;
-    print_newline()
-
-let do_match_nfa s d =
-    if NFA_Regexp.accepts d (explode s)
-    then print_endline "True"
-    else print_endline "False"
 
 let make_nfa (symbols:char option list)
              (table:(bool*int*bool*(int list list)) list) =
@@ -154,11 +124,12 @@ let make_nfa (symbols:char option list)
 
 %token HASH SLASH TILDE COMMA DOUBLE_EQUAL QUESTION BANG V
 %token LBR RBR LT GT LCURL RCURL
-%token AMPER PIPE REV DOT AFFECT
+%token AMPER PIPE TRANS DOT AFFECT PREF
 %token ARROW
 %token NEWLINE EOF
 %token TABLE
 %token UNDERSCORE
+%token INFINITE EMPTY
 
 %right PIPE PLUS
 %right AMPER
@@ -173,25 +144,18 @@ let make_nfa (symbols:char option list)
 
 toplevel:
     | QUESTION                                      { do_help() }
-    | LPAR HASH regexp RPAR                         { print_raw_regexp $3; print_newline() }
+    | LPAR HASH raw_regexp RPAR                     { print_raw_regexp $3; print_newline() }
 
     | dfa NEWLINE                                   { DFA_Regexp.print ~show_labels:!verbose $1 ; print_newline () }
     | nfa NEWLINE                                   { NFA_Regexp.print ~show_labels:!verbose $1 ; print_newline () }
-    | regexp NEWLINE                                { print_regexp (simplify $1) ; print_newline () }
+    | regexp NEWLINE                                { print_regexp $1 ; print_newline () }
 
     | REG AFFECT regexp NEWLINE                     { list_REG := IntMap.add $1 $3 !list_REG }
     | DFA AFFECT dfa NEWLINE                        { list_DFA := IntMap.add $1 $3 !list_DFA }
     | NFA AFFECT nfa NEWLINE                        { list_NFA := IntMap.add $1 $3 !list_NFA }
     | NFA AFFECT NEWLINE table                      { list_NFA := IntMap.add $1 $4 !list_NFA }
 
-    | regexp SLASH STR NEWLINE                      { do_derivative $1 $3 }
-    | STR TILDE regexp NEWLINE                      { do_match_regexp $1 $3 }
-    | STR TILDE dfa NEWLINE                         { do_match_dfa $1 $3 }
-    | STR TILDE nfa NEWLINE                         { do_match_nfa $1 $3 }
-
-    | dfa DOUBLE_EQUAL dfa NEWLINE                  { do_equal $1 $3 }
-    | dfa LT dfa NEWLINE                            { do_subset $1 $3 }
-    | dfa GT dfa NEWLINE                            { do_subset $3 $1 }
+    | assertion NEWLINE                             { if $1 then print_endline "true" else print_endline "false" }
 
     | V NEWLINE                                     { verbose := not !verbose ;
                                                       raise (Invalid_argument "set verbosity")}
@@ -199,11 +163,22 @@ toplevel:
     | EOF                                           { raise Exit }
     | NEWLINE                                       { raise (Invalid_argument "empty line") }
 
+assertion:
+    | STR TILDE regexp                      { match_regexp $1 $3 }
+    | STR TILDE dfa                         { DFA_Regexp.accepts $3 (explode $1) }
+    | STR TILDE nfa                         { NFA_Regexp.accepts $3 (explode $1) }
+
+    | dfa DOUBLE_EQUAL dfa                  { DFA_Regexp.equal $1 $3 }
+    | dfa LT dfa                            { DFA_Regexp.subset $1 $3 }
+    | dfa GT dfa                            { DFA_Regexp.subset $3 $1 }
+    | EMPTY regexp                          { is_empty $2 }
+    | INFINITE regexp                       { is_infinite $2 }
+
 
 dfa:
     | LPAR dfa RPAR             { $2 }
-    | LBR regexp RBR            { dfa_from_regexp (simplify $2) }
-    | LBR HASH regexp RBR       { dfa_from_regexp $3 }
+    | LBR regexp RBR            { dfa_from_regexp $2 }
+    | LBR HASH raw_regexp RBR   { dfa_from_regexp $3 }
     | TILDE dfa                 { DFA_Regexp.complement $2 }
     | BANG dfa                  { DFA_Regexp.minimize $2 }
     | dfa PIPE dfa              { DFA_Regexp.union $1 $3 }
@@ -212,34 +187,41 @@ dfa:
     | DFA                       { get_DFA $1 }
 
 nfa:
-    | LPAR nfa RPAR             { $2 }
-    | LCURL regexp RCURL        { nfa_from_regexp (simplify $2) }
-    | LCURL HASH regexp RCURL   { nfa_from_regexp $3 }
-    | nfa PIPE nfa              { NFA_Regexp.union $1 $3 }
-    | nfa STAR                  { NFA_Regexp.star $1 }
-    | nfa DOT nfa               { NFA_Regexp.concat $1 $3 }
-    | REV nfa                   { NFA_Regexp.reverse $2 }
-    | LCURL dfa RCURL           { NFA_Regexp.from_dfa $2 }
-    | NFA                       { get_NFA $1 }
+    | LPAR nfa RPAR                 { $2 }
+    | LCURL regexp RCURL            { nfa_from_regexp $2 }
+    | LCURL HASH raw_regexp RCURL   { nfa_from_regexp $3 }
+    | nfa PIPE nfa                  { NFA_Regexp.union $1 $3 }
+    | nfa STAR                      { NFA_Regexp.star $1 }
+    | nfa DOT nfa                   { NFA_Regexp.concat $1 $3 }
+    | TRANS nfa                     { NFA_Regexp.transpose $2 }
+    | LCURL dfa RCURL               { NFA_Regexp.from_dfa $2 }
+    | NFA                           { get_NFA $1 }
 
 regexp:
+    | raw_regexp { simplify $1 }
+
+raw_regexp:
     | sum_regexp { $1 }
 
 sum_regexp:
-    | product_regexp { $1 }
-    | product_regexp PLUS sum_regexp { Sum($1, $3) }
+    | product_regexp                    { $1 }
+    | product_regexp PLUS sum_regexp    { Sum($1, $3) }
 
 product_regexp:
-    | atomic_regexp { $1 }
-    | atomic_regexp product_regexp { Product($1, $2) }
+    | atomic_regexp                     { $1 }
+    | atomic_regexp product_regexp      { Product($1, $2) }
 
 atomic_regexp:
-    | ZERO { Zero }
-    | ONE { One }
-    | SYMB { Symb($1) }
-    | LPAR regexp RPAR { $2 }
-    | atomic_regexp STAR { Star($1) }
-    | REG { get_REG $1 }
+    | ZERO                          { Zero }
+    | ONE                           { One }
+    | SYMB                          { Symb($1) }
+    | LPAR raw_regexp RPAR          { $2 }
+    | atomic_regexp STAR            { Star($1) }
+    | REG                           { get_REG $1 }
+    | TRANS atomic_regexp           { transpose $2 }
+    | atomic_regexp SLASH STR       { word_derivative $1 $3 }
+    | PREF atomic_regexp            { prefix $2 }
+
 
 
 

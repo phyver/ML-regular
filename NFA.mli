@@ -26,7 +26,7 @@ module type NFAType =
     val union : nfa -> nfa -> nfa
     val concat : nfa -> nfa -> nfa
     val star : nfa -> nfa
-    val reverse : nfa -> nfa
+    val transpose : nfa -> nfa
 
     val from_dfa : dfa -> nfa
     val to_dfa : nfa -> dfa

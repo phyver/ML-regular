@@ -38,7 +38,10 @@ rule token = parse
   | '&'             { AMPER }
   | '|'             { PIPE }
   | '.'             { DOT }
-  | "REV"           { REV }
+  | "TRANS"         { TRANS }
+  | "PREF"          { PREF }
+  | "EMPTY"         { EMPTY }
+  | "INFINITE"      { INFINITE }
   | reg             { REG(int_of_string (get_index (Lexing.lexeme lexbuf))) }
   | dfa             { DFA(int_of_string (get_index (Lexing.lexeme lexbuf))) }
   | nfa             { NFA(int_of_string (get_index (Lexing.lexeme lexbuf))) }

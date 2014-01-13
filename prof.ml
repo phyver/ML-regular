@@ -3,7 +3,7 @@ let concat_n s n =
     in aux s n ""
 
 let main () =
-    let n = 44 in
+    let n = 64 in
     let cmd = "\"" ^ (concat_n "a" n) ^ "\" ~ " ^ (concat_n "(1+a)" n) ^ (concat_n "a" n) in
     print_endline cmd;
     let lexbuf = Lexing.from_string (cmd^"\n") in

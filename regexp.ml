@@ -122,12 +122,12 @@ let rec simplify (r:regexp) : regexp = match r with
             let r2 = simplify r2 in
             simplify_sum r1 r2
 
-(** reverse *)
-let rec reverse (r:regexp) : regexp = match r with
+(** transpose *)
+let rec transpose (r:regexp) : regexp = match r with
     | Zero | One | Symb(_) -> r
-    | Sum(r1,r2) -> Sum(reverse r1, reverse r2)
-    | Product(r1,r2) -> Product(reverse r2, reverse r1)
-    | Star(r) -> Star(reverse r)
+    | Sum(r1,r2) -> Sum(transpose r1, transpose r2)
+    | Product(r1,r2) -> Product(transpose r2, transpose r1)
+    | Star(r) -> Star(transpose r)
 
 (***
  *** derivatives and related
@@ -183,7 +183,7 @@ let derivative (r:regexp) (a:symbol) : regexp =
 (* the derivative with respect to a word *)
 let word_derivative (r:regexp) (w:string) : regexp =
     let rec aux r l = match l with
-        | [] -> constant_part r
+        | [] -> r
         | a::l -> aux (derivative r a) l
     in
     aux r (explode w)
@@ -232,3 +232,39 @@ let get_all_derivatives (r:regexp) : regexp list =
    in
    aux [] [simplify r]
 
+
+(* check if a regex denotes the empty language *)
+let rec is_empty (r:regexp) : bool = match r with
+    | Zero -> true
+    | One | Symb(_) -> false
+    | Sum(r1,r2) -> is_empty r1 && is_empty r2
+    | Product(r1,r2) -> is_empty r1 || is_empty r2
+    | Star(_) -> false
+
+(* check if the languae of a regular is less than One, ie it contains at most
+ * the empty word *)
+let rec lessOne (r:regexp) : bool = match r with
+    | Zero | One -> true
+    | Symb(_) -> false
+    | Sum(r1,r2) -> lessOne r1 && lessOne r2
+    | Product(r1,r2) -> is_empty r1 || is_empty r2 || (lessOne r1 && lessOne r2)
+    | Star(r) -> lessOne r
+
+(* check if the language of a regexp is infinite *)
+let rec is_infinite (r:regexp) : bool = match r with
+    | Zero | One | Symb(_) -> false
+    | Sum(r1,r2) -> is_infinite r1 || is_infinite r2
+    | Product(r1,r2) -> (is_infinite r1 && not (is_empty r2)) ||
+                        (not (is_empty r1) && is_infinite r2)
+    | Star(r) -> not (lessOne r)
+
+(* compute the regexp of prefixes *)
+let rec prefix (r:regexp) : regexp = match r with
+    | Zero -> Zero
+    | One -> One
+    | Symb(a) -> Sum(One,Symb(a))
+    | Sum(r1,r2) -> Sum(prefix r1, prefix r2)
+    | Product(r1,r2) ->
+            let p = simplify_product r1 (prefix r2) in
+            simplify_sum (prefix r1) p
+    | Star(r) -> simplify_product (Star(r)) (prefix r)

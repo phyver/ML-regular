@@ -94,6 +94,8 @@ module LTS (Label:OType)(State:OType)
      * if the function isn't a morphism, the result may be unexpected *)
     let map (f:state -> state) (m:lts) =
         fold (fun s l t m -> add (f s) l (f t) m) m Matrix.empty
+
+    (* TODO prefix, remove_useless *)
 end
 
 
@@ -354,7 +356,8 @@ module Make(Symbol:OType) (State:OType)
             ) symbols) states
 
 
-    (* render a dfa total *)
+    (* make a dfa total *)
+    (* TODO add an optionnal parameter to specify the alphabet *)
     let totalify (d:dfa) : dfa =
 
         (* states and symbols of the automaton *)
@@ -567,6 +570,7 @@ module Make(Symbol:OType) (State:OType)
 
     (* complement of an automaton
      * we just change the accepting states *)
+    (* TODO add an optionnal parameter to specify the alphabet *)
     let complement d =
         let d = totalify d in
         let states =

@@ -24,11 +24,6 @@ end
 module DFA_Regexp = DFA.Make(OChar)(ORegexp)
 module NFA_Regexp = NFA.Make(OChar)(ORegexp)
 
-(* in order to convert an NFA to a regexp, we will need automata where symbols
- * are regular expressions *)
-module Automaton_Regexp = NFA.Make(ORegexp)(ORegexp)
-
-
 (* transform a regexp into an automaton by computing its derivatives *)
 let dfa_from_regexp (r:regexp) : DFA_Regexp.dfa =
 
@@ -91,6 +86,10 @@ let rec nfa_from_regexp r = match r with
     | Star(r) ->
             let d = nfa_from_regexp r in
             NFA_Regexp.star d
+
+
+(* TODO regexp from nfa *)
+
 
 
 

@@ -142,7 +142,7 @@ module type NFAType = sig
     val union : nfa -> nfa -> nfa
     val concat : nfa -> nfa -> nfa
     val star : nfa -> nfa
-    val reverse : nfa -> nfa
+    val transpose : nfa -> nfa
 
     val from_dfa : dfa -> nfa
     val to_dfa : nfa -> dfa
@@ -533,7 +533,7 @@ module Make (Symbol:OType) (State:OType)
         }
 
     (* reversal of an automaton *)
-    let reverse (d:nfa) : nfa =
+    let transpose (d:nfa) : nfa =
         let matrix =
             LTS.fold (fun s a t matrix ->
                 LTS.add t a s matrix
