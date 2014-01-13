@@ -514,11 +514,14 @@ module Make (Symbol:OType) (State:OType)
         let accepting = SetStates.elements d.accepting in
 
         (* we add epsilon transitions from each accepting state to
-         * each starting state *)
+         * each starting state, and from each starting state to each accepting
+         * state (for the empty word) *)
         let matrix =
             List.fold_left (fun matrix i ->
             List.fold_left (fun matrix f ->
-                LTS.add f None i matrix
+                let matrix = LTS.add f None i matrix in
+                let matrix = LTS.add i None f matrix in
+                matrix
             ) matrix accepting
             ) d.matrix init
         in
