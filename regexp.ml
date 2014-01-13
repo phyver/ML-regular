@@ -122,6 +122,13 @@ let rec simplify (r:regexp) : regexp = match r with
             let r2 = simplify r2 in
             simplify_sum r1 r2
 
+(** reverse *)
+let rec reverse (r:regexp) : regexp = match r with
+    | Zero | One | Symb(_) -> r
+    | Sum(r1,r2) -> Sum(reverse r1, reverse r2)
+    | Product(r1,r2) -> Product(reverse r2, reverse r1)
+    | Star(r) -> Star(reverse r)
+
 (***
  *** derivatives and related
  **)
