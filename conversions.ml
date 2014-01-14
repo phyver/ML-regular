@@ -165,7 +165,7 @@ let regexp_from_nfa ?(random=true) aut : regexp =
 
     (* we should somehow return the new list of states to avoid going through
      * all of them all the time... *)
-    let remove_state matrix x =
+    let remove_state matrix x states =
         let xx = try Star(IntIntMap.find (x,x) matrix)
                  with Not_found -> One
         in
@@ -189,11 +189,17 @@ let regexp_from_nfa ?(random=true) aut : regexp =
             let matrix = IntIntMap.remove (s,x) matrix in
             let matrix = IntIntMap.remove (x,s) matrix in
             matrix
-        ) matrix (init::final::states)
+        ) matrix (init::final::x::states)
     in
 
     (* remove all the states from the matrix *)
-    let matrix = List.fold_left remove_state matrix states in
+    let rec remove_all_states matrix states = match states with
+        | [] -> matrix
+        | s::states ->
+                let matrix = remove_state matrix s states in
+                remove_all_states matrix states
+    in
+    let matrix = remove_all_states matrix states in
 
     (* we get the only entry from the initial state to the final state *)
     assert (1 = IntIntMap.cardinal matrix);
@@ -210,8 +216,9 @@ let regexp_from_nfa aut =
              then aux (n-1) r
              else aux (n-1) rr
     in
-    aux 1000 (regexp_from_nfa aut)
+    aux 100 (regexp_from_nfa aut)
 
+(* TODO: we seem to get many regexps of the form (1+x)(1+x)* which is equal to x*... Perhaps I could simplify that... *)
 
 
 (* vim600:set textwidth=0: *)
