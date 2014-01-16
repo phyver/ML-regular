@@ -15,6 +15,10 @@ let state = "s" [ '0'-'9' ]+
 rule token = parse
   | '('             { LPAR }
   | ')'             { RPAR }
+  | '['             { LBR }
+  | ']'             { RBR }
+  | '{'             { LCURL }
+  | '}'             { RCURL }
   | '+'             { PLUS }
   | '*'             { STAR }
   | '0'             { ZERO }
@@ -25,13 +29,8 @@ rule token = parse
   | str             { STR(get_string (Lexing.lexeme lexbuf)) }
   | '#'             { HASH }
   | '/'             { SLASH }
-  | '?'             { QUESTION }
   | '!'             { BANG }
   | '~'             { TILDE }
-  | '['             { LBR }
-  | ']'             { RBR }
-  | '{'             { LCURL }
-  | '}'             { RCURL }
   | '<'             { LT }
   | '>'             { GT }
   | "=="            { DOUBLE_EQUAL }
@@ -47,15 +46,20 @@ rule token = parse
   | nfa             { NFA(int_of_string (get_index (Lexing.lexeme lexbuf))) }
   | state           { STATE(int_of_string (get_state_index (Lexing.lexeme lexbuf))) }
   | ":="            { AFFECT }
-  | "TABLE"         { TABLE }
   | "->"            { ARROW }
   | "_"             { UNDERSCORE }
 
   | [' ' '\t']      { token lexbuf }
   | '\n'            { NEWLINE }
   | eof             { EOF }
-  | 'Q'             { EOF }
-  | 'V'             { V }
+  | ":q"            { QUIT }
+  | ":quit"         { QUIT }
+  | ":v"            { VERBOSE }
+  | ":verbose"      { VERBOSE }
+  | ":h"            { HELP }
+  | ":help"         { HELP }
+  | ":a"            { ASSERT }
+  | ":assert"       { ASSERT }
   | "{-*"            { comments 0 lexbuf }
 
 and comments level = parse

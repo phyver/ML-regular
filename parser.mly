@@ -9,26 +9,28 @@ let do_help () =
     List.iter print_endline
     [
 "Commands:";
-"  > regexp                     simplified form of the regexp";
+"  > regexp                     print the regexp";
 "  > dfa                        print the table of the automaton";
+"  > nfa                        print the table of the automaton";
 "";
 "  > REG<n> := regexp           define a regexp";
 "  > DFA<n> := dfa              define a deterministic automaton";
 "  > NFA<n> := nfa              define a non-deterministic automaton";
-"  > NFA<n> := \\n table         define a non-deterministic automaton";
+"  > NFA<n> := \\n table         define a non-deterministic automaton from a table";
 "";
 "  > \"string\" ~ regexp          matches the string against the regexp";
 "  > \"string\" ~ dfa             matches the string against the automaton";
 "  > \"string\" ~ nfa             matches the string against the automaton";
+"";
 "  > dfa == dfa                 test if the two automata are equal";
 "  > dfa > dfa                  test if the first automaton has a larger language than the second one";
 "  > dfa < dfa                  test if the second automaton has a larger language than the first one";
 "  > INFINITE regexp            test if the regexp has an infinite language";
 "  > EMPTY regexp               test if the regexp has an empty language";
 "";
-"  > Q                      quit";
-"  > V                      toggle printing labels of states in automata";
-"  > ?                      help message";
+"  > :q                     quit";
+"  > :v                     toggle printing labels of states in automata";
+"  > :h                     help message";
 "";
 "Basic regexp are obtained from 0, 1, lowercase letters, +, * and concatenation, and user defined regexp (REG<n>)";
 "Extended regexps are obtained from";
@@ -40,24 +42,22 @@ let do_help () =
 "";
 "dfa are obtained from:";
 "     [regexp]                  automaton of the derivatives of the regexp";
-"     [#regexp]                 automaton of the derivatives of the raw regexp";
-"     dfa & dfa                 intersection of the two automata";
-"     dfa | dfa                 union of the two automata";
-"     ~dfa                      complement of the automaton";
-"     ~dfa / {a,b,c...}         complement of the automaton, with additional symbols";
-"     !dfa                      minimization of the automaton";
 "     [nfa]                     determinisation of the automaton";
 "     DFA<n>                    user defined automaton";
+"     !dfa                      minimization of the automaton";
+"     dfa & dfa                 intersection of the two automata";
+"     dfa + dfa                 union of the two automata";
+"     ~dfa                      complement of the automaton";
+"     ~dfa / {a,b,c...}         complement of the automaton, with additional symbols";
 "";
 "nfa are obtained from:";
 "     {regexp}                  automaton inductively obtained from the regexp";
-"     {#regexp}                 automaton inductively obtained from the raw regexp";
-"     nfa | nfa                 union of the two automata";
+"     {dfa}                     the same automaton, seen as non-deterministic";
+"     NFA<n>                    user defined automaton";
+"     nfa + nfa                 union of the two automata";
 "     nfa*                      star of the automaton";
 "     nfa . nfa                 concatenation of the automata";
 "     TRANS nfa                 reversal of the automaton";
-"     {dfa}                     the same automaton, seen as non-deterministic";
-"     NFA<n>                    user defined automaton";
 "";
 "A table can be used to define a non-deterministic automaton.";
 "A table is given in the form";
@@ -85,6 +85,7 @@ let get_NFA n =
     try IntMap.find n !list_NFA
     with Not_found -> raise(Invalid_argument("no such automaton NFA"^(string_of_int n)))
 
+(* transform a parsed table into a non-deterministic automaton *)
 let make_nfa (symbols:char option list)
              (table:(bool*int*bool*(int list list)) list) =
 
@@ -115,24 +116,40 @@ let make_nfa (symbols:char option list)
 
 %}
 
-%token LPAR RPAR PLUS STAR ONE ZERO
+//typed tokens
 %token <char> SYMB
-
 %token <string> STR
 %token <int> DFA
 %token <int> NFA
 %token <int> REG
-%token <int> STATE
 
-%token HASH SLASH TILDE COMMA DOUBLE_EQUAL QUESTION BANG V
-%token LBR RBR LT GT LCURL RCURL
-%token AMPER PIPE TRANS DOT AFFECT PREF
-%token ARROW
+//grouping
+%token LPAR RPAR LBR RBR LCURL RCURL
+
+//constants
+%token ONE ZERO
+%token INFINITE EMPTY PREF TRANS
+
+//unary
+%token STAR TILDE BANG
+%token HASH
+
+//binary
+%token PLUS AMPER DOT SLASH
+
+//misc
 %token NEWLINE EOF
-%token TABLE
-%token UNDERSCORE
-%token INFINITE EMPTY
+%token ASSERT VERBOSE QUIT HELP AFFECT
 
+//relations
+%token LT GT DOUBLE_EQUAL
+
+//parsing tables
+%token <int> STATE
+%token PIPE ARROW UNDERSCORE COMMA
+
+
+//priorities and associativity of some operations
 %right PIPE PLUS
 %right AMPER
 %right TILDE BANG
@@ -145,7 +162,7 @@ let make_nfa (symbols:char option list)
 %%
 
 toplevel:
-    | QUESTION                                      { do_help() }
+    | HELP NEWLINE                                  { do_help() }
 
     | dfa NEWLINE                                   { DFA_Regexp.print ~show_labels:!verbose $1 ; print_newline () }
     | nfa NEWLINE                                   { NFA_Regexp.print ~show_labels:!verbose $1 ; print_newline () }
@@ -157,12 +174,13 @@ toplevel:
     | NFA AFFECT NEWLINE table                      { list_NFA := IntMap.add $1 $4 !list_NFA }
 
     | assertion NEWLINE                             { if $1 then print_endline "true" else print_endline "false" }
+    | ASSERT assertion NEWLINE                      { assert $2 }
 
-    | V NEWLINE                                     { verbose := not !verbose ;
-                                                      raise (Invalid_argument "set verbosity")}
+    | VERBOSE NEWLINE                               { verbose := not !verbose }
 
-    | EOF                                           { raise Exit }
-    | NEWLINE                                       { raise (Invalid_argument "empty line") }
+    | EOF                                           { raise End_of_file }
+    | QUIT NEWLINE                                  { raise End_of_file }
+    | NEWLINE                                       { () }
 
 assertion:
     | STR TILDE regexp                      { match_regexp $1 $3 }

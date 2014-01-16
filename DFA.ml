@@ -711,7 +711,7 @@ module Make(Symbol:OType) (State:OType)
         in
 
         let d1 = minimize d1 in
-        let cd2 = minimize (complement d2) in
+        let cd2 = minimize (complement d2 ~symbols:(get_symbols d1)) in
         let d = minimize (intersection d1 cd2) in
             SetStates.is_empty d.accepting
 
