@@ -60,7 +60,8 @@ rule token = parse
   | ":help"         { HELP }
   | ":a"            { ASSERT }
   | ":assert"       { ASSERT }
-  | "{-*"            { comments 0 lexbuf }
+  | "NOT"           { NOT }
+  | "{-"            { comments 0 lexbuf }
 
 and comments level = parse
   | "-}"            { if level = 0 then token lexbuf else comments (level-1) lexbuf }
