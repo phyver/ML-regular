@@ -13,7 +13,7 @@ let read_file f =
                 Parser.toplevel Lexer.token lexbuf
             with
                 | Invalid_argument(s) ->  print_endline s
-                | Failure(msg) -> print_endline ("problem: " ^ msg)
+                | Failure(msg) -> print_endline ("problem: " ^ msg); Lexing.flush_input lexbuf
                 | Parsing.Parse_error -> print_endline "parse error"
             end;
         done
@@ -33,11 +33,12 @@ let main () =
     do
         print_string "> "; flush_all ();
         try
-            Parser.toplevel Lexer.token lexbuf
+            Parser.toplevel Lexer.token lexbuf;
+            flush_all()
         with
             | End_of_file -> print_newline (); exit 0
             | Invalid_argument(s) ->  print_endline s
-            | Failure(msg) -> print_endline ("problem: " ^ msg)
+            | Failure(msg) -> print_endline ("problem: " ^ msg); Lexing.flush_input lexbuf
             | Parsing.Parse_error -> print_endline "parse error"
     done
 
