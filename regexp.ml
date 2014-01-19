@@ -191,7 +191,7 @@ let word_derivative (r:regexp) (w:string) : regexp =
 
 (* match a string against a regexp using iterated derivatives *)
 let match_regexp (w:string) (r:regexp) : bool =
-    One = word_derivative r w
+    contains_epsilon (word_derivative r w)
 
 
 (* get a list of symbols used in a regexp *)
