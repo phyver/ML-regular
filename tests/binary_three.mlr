@@ -1,0 +1,16 @@
+{- automaton checking if a binary number is divisible by 3,
+   where o means 0 and l means 1 -}
+
+NFA1 :=
+            |   _   o   l
+-> s1 ->    |   !   s1  s2
+   s2       |   !   s3  s1
+   s3       |   !   s2  s3
+
+REG1 := < NFA1 >
+
+:assert "ll" < REG1
+:assert "llo" < REG1
+:assert "lool" < REG1
+:assert NOT "lolo" < REG1
+

@@ -1,0 +1,3 @@
+:assert [a] == [a]
+:assert NOT [a] == [b]
+

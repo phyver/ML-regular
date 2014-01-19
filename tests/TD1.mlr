@@ -1,0 +1,14 @@
+{- REG1 : mots non vides, sans b, sans aa -}
+REG1 :=  cc* + c*(acc*)(acc*)* (1+a) + c*a
+
+{- REG2 : mots sans aa ni bb -}
+REG2 := (1+b) (REG1 b)* (1+REG1)
+
+{- DFA correspondant -}
+DFA1 := ![ REG2]
+
+{- DFA pour les mots sans aa ni bb -}
+DFA2 := ! ~[ (a+b+c)* (aa+bb) (a+b+c)* ]
+
+:assert DFA1 == DFA2
+:assert REG2 == DFA2

@@ -1,0 +1,13 @@
+{- axioms of Kleene algebras -}
+
+REG1 := a(b*c+b(bc*)*)(c+1)
+REG2 := (abb)* + (abccc)*(a+1+bc)
+REG3 := (ccc)* + (ccccc)*
+
+:assert  (REG1 + REG2) REG3  ==  REG1 REG3 + REG2 REG3
+:assert  REG1 (REG2 + REG3)  ==  REG1 REG2 + REG1 REG3
+:assert      (REG1 + REG2)*  ==  (REG1* REG2)* REG1*
+:assert        (REG1 REG2)*  ==  1 + REG1 (REG2 REG1)* REG2
+:assert               REG1*  ==  (REG1 REG1)* (1 + REG1)
+:assert               REG1*  ==  (REG1 REG1 REG1)* (1 + REG1 + REG1 REG1)
+:assert               REG1*  ==  (REG1 REG1 REG1 REG1)* (1 + REG1 + REG1 REG1 + REG1 REG1 REG1)
