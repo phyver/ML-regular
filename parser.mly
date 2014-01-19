@@ -18,13 +18,13 @@ let do_help () =
 "  > NFA<n> := nfa              define a non-deterministic automaton";
 "  > NFA<n> := \\n table         define a non-deterministic automaton from a table";
 "";
-"  > \"string\" ~ regexp          matches the string against the regexp";
-"  > \"string\" ~ dfa             matches the string against the automaton";
-"  > \"string\" ~ nfa             matches the string against the automaton";
+"  > \"string\" < regexp          matches the string against the regexp";
+"  > \"string\" < dfa             matches the string against the automaton";
+"  > \"string\" < nfa             matches the string against the automaton";
 "";
-"  > dfa == dfa                 test if the two automata are equal";
-"  > dfa > dfa                  test if the first automaton has a larger language than the second one";
-"  > dfa < dfa                  test if the second automaton has a larger language than the first one";
+"  > expr == expr               test if the two expressions are equal";
+"  > expr > expr                test if the first expression has a larger language than the second";
+"  > expr < expr                test if the second expression has a larger language than the first";
 "  > INFINITE regexp            test if the regexp has an infinite language";
 "  > EMPTY regexp               test if the regexp has an empty language";
 "";
@@ -139,7 +139,7 @@ let make_nfa (symbols:char option list)
 
 //misc
 %token NEWLINE EOF
-%token ASSERT VERBOSE QUIT HELP AFFECT
+%token ASSERT VERBOSE QUIT HELP AFFECT NOT
 
 //relations
 %token LT GT DOUBLE_EQUAL
@@ -183,16 +183,21 @@ toplevel:
     | NEWLINE                                       { () }
 
 assertion:
-    | STR TILDE regexp                      { match_regexp $1 $3 }
-    | STR TILDE dfa                         { DFA_Regexp.accepts $3 (explode $1) }
-    | STR TILDE nfa                         { NFA_Regexp.accepts $3 (explode $1) }
-
-    | dfa DOUBLE_EQUAL dfa                  { DFA_Regexp.equal $1 $3 }
-    | dfa LT dfa                            { DFA_Regexp.subset $1 $3 }
-    | dfa GT dfa                            { DFA_Regexp.subset $3 $1 }
+    | NOT assertion                         { not $2 }
+    | STR LT regexp                         { match_regexp $1 $3 }
+    | STR LT dfa                            { DFA_Regexp.accepts $3 (explode $1) }
+    | STR LT nfa                            { NFA_Regexp.accepts $3 (explode $1) }
     | EMPTY regexp                          { is_empty $2 }
     | INFINITE regexp                       { is_infinite $2 }
 
+    | dfa_expr DOUBLE_EQUAL dfa_expr        { DFA_Regexp.equal $1 $3 }
+    | dfa_expr LT dfa_expr                  { DFA_Regexp.subset $1 $3 }
+    | dfa_expr GT dfa_expr                  { DFA_Regexp.subset $3 $1 }
+
+dfa_expr:
+    | dfa       { $1 }
+    | nfa       { NFA_Regexp.to_dfa $1 }
+    | regexp    { dfa_from_regexp $1 }
 
 dfa:
     | LPAR dfa RPAR             { $2 }
@@ -206,7 +211,7 @@ dfa:
 
 alphabet:
     |                               { [] }
-    | SLASH LCURL elements RCURL    { print_endline "alphabet"; $3 }
+    | SLASH LCURL elements RCURL    { $3 }
 elements:
     |                       { [] }
     | SYMB                  { [$1] }
