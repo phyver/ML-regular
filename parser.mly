@@ -32,7 +32,8 @@ let do_help () =
 "  > :v                     toggle printing labels of states in automata";
 "  > :h                     help message";
 "";
-"Basic regexp are obtained from 0, 1, lowercase letters, +, * and concatenation, and user defined regexp (REG<n>)";
+"Basic regexp are obtained from 0, 1, lowercase letters, +, *, concatenation,";
+"complementation (~) and user defined regexp (REG<n>)";
 "Extended regexps are obtained from";
 "    regexp / \"string\"            the word derivative of the regexp wrt to the string";
 "    TRANS regexp                 the transposition of the regexp";
@@ -249,6 +250,7 @@ atomic_regexp:
     | SYMB                          { Symb($1) }
     | LPAR raw_regexp RPAR          { $2 }
     | atomic_regexp STAR            { Star($1) }
+    | TILDE atomic_regexp           { Neg($2) }
     | REG                           { get_REG $1 }
     | TRANS atomic_regexp           { transpose $2 }
     | atomic_regexp SLASH STR       { word_derivative $1 $3 }

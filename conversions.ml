@@ -75,6 +75,7 @@ let rec nfa_from_regexp r = match r with
     | Zero -> NFA_Regexp.zero_nfa
     | One -> NFA_Regexp.one_nfa
     | Symb(a) -> NFA_Regexp.symbol_nfa a
+    | Neg(r) -> raise (Failure "cannot compute the NFA associated to a negated regexp directly")
     | Sum(r1,r2) ->
             let d1 = nfa_from_regexp r1 in
             let d2 = nfa_from_regexp r2 in

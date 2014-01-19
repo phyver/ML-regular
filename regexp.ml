@@ -10,12 +10,21 @@ type symbol = char
 
 (* type for basic regular expressions *)
 type regexp =
+  (* basic regexp *)
   | Zero
   | One
   | Symb of symbol
   | Sum of regexp*regexp
   | Product of regexp*regexp
   | Star of regexp
+
+  (* extensions *)
+  | Neg of regexp
+  (*
+  | All                             "#"
+  | Inter of regexp*regexp          "&"
+  | Joker                           "."
+  *)
 
 
 (***
@@ -37,6 +46,9 @@ let rec string_of_regexp (r:regexp) : string = match r with
             (string_of_regexp r1) ^"(" ^ (string_of_regexp r2) ^")"
     | Product(r1, r2) ->
             (string_of_regexp r1) ^ (string_of_regexp r2)
+    | Neg(Zero as r) | Neg(One as r) | Neg(Symb(_) as r) -> "~" ^ (string_of_regexp r)
+    | Neg(r) -> "~(" ^ (string_of_regexp r) ^ ")"
+
 
 (* main printing function *)
 let rec print_regexp (r:regexp) : unit =
@@ -56,6 +68,7 @@ let rec print_raw_regexp (r:regexp) : unit = match r with
     | Product(r1, r2) ->
             print_string "(" ; print_raw_regexp r1; print_string "." ;
             print_raw_regexp r2 ; print_string ")"
+    | Neg(r) -> print_string "~(" ; (print_raw_regexp r) ; print_string ")"
 
 
 (***
@@ -99,7 +112,9 @@ let simplify_sum (r1:regexp) (r2:regexp) : regexp =
     let l = List.filter (fun x -> x <> Zero) l in
     let l = List.sort compare l in
     let l = uniq l in
-    list2sum l
+    if List.mem (Neg(Zero)) l
+    then Neg(Zero)
+    else list2sum l
 
 (* simplify a regexp recursively *)
 let rec simplify (r:regexp) : regexp = match r with
@@ -121,6 +136,7 @@ let rec simplify (r:regexp) : regexp = match r with
             let r1 = simplify r1 in
             let r2 = simplify r2 in
             simplify_sum r1 r2
+    | Neg(r) -> let r = simplify r in (match r with Neg(r) -> r | r -> Neg(r))
 
 (** transpose *)
 let rec transpose (r:regexp) : regexp = match r with
@@ -128,6 +144,7 @@ let rec transpose (r:regexp) : regexp = match r with
     | Sum(r1,r2) -> Sum(transpose r1, transpose r2)
     | Product(r1,r2) -> Product(transpose r2, transpose r1)
     | Star(r) -> Star(transpose r)
+    | Neg(r) -> Neg(transpose r)
 
 (***
  *** derivatives and related
@@ -141,6 +158,7 @@ let rec contains_epsilon (r:regexp) : bool = match r with
     | Sum(r1, r2) -> contains_epsilon r1 || contains_epsilon r2
     | Product(r1, r2) -> contains_epsilon r1 && contains_epsilon r2
     | Star r -> true
+    | Neg(r) -> not (contains_epsilon r)
 
 
 (* the "constant part" of a regexp *)
@@ -174,6 +192,7 @@ let derivative (r:regexp) (a:symbol) : regexp =
                             simplify_product (derivative_mem r1 a) r2
                 | Star(r) -> simplify_product (derivative_mem r a)
                                               (Star(r))
+                | Neg(r) -> Neg (derivative_mem r a)
             in
             mem := MP.add r d !mem;
             d
@@ -201,6 +220,7 @@ let get_symbols (r:regexp) : symbol list =
     | Symb(a) -> [a]
     | Star(r) -> aux r
     | Sum(r1, r2) | Product(r1, r2) -> List.rev_append (aux r1) (aux r2)
+    | Neg(r) -> aux r
     in
     let l = aux r in
     let l = List.sort compare l in
@@ -240,6 +260,7 @@ let rec is_empty (r:regexp) : bool = match r with
     | Sum(r1,r2) -> is_empty r1 && is_empty r2
     | Product(r1,r2) -> is_empty r1 || is_empty r2
     | Star(_) -> false
+    | Neg(r) -> not (is_empty r)
 
 (* check if the languae of a regular is less than One, ie it contains at most
  * the empty word *)
@@ -249,6 +270,7 @@ let rec lessOne (r:regexp) : bool = match r with
     | Sum(r1,r2) -> lessOne r1 && lessOne r2
     | Product(r1,r2) -> is_empty r1 || is_empty r2 || (lessOne r1 && lessOne r2)
     | Star(r) -> lessOne r
+    | Neg(r) -> raise (Failure "cannot check directly if a complement regexp is less than One")
 
 (* check if the language of a regexp is infinite *)
 let rec is_infinite (r:regexp) : bool = match r with
@@ -257,6 +279,7 @@ let rec is_infinite (r:regexp) : bool = match r with
     | Product(r1,r2) -> (is_infinite r1 && not (is_empty r2)) ||
                         (not (is_empty r1) && is_infinite r2)
     | Star(r) -> not (lessOne r)
+    | Neg(r) -> not (is_infinite r)
 
 (* compute the regexp of prefixes *)
 let rec prefix (r:regexp) : regexp = match r with
@@ -268,3 +291,5 @@ let rec prefix (r:regexp) : regexp = match r with
             let p = simplify_product r1 (prefix r2) in
             simplify_sum (prefix r1) p
     | Star(r) -> simplify_product (Star(r)) (prefix r)
+    | Neg(r) -> raise (Failure "cannot compute directly the prefix of a complement regexp")
+
