@@ -63,6 +63,7 @@ let do_help () =
 "A table can be used to define a non-deterministic automaton.";
 "A table is given in the form";
 "           |  _  a   b    c        d    e";
+"--------------------------------------------";
 " -> s1 ->  |  !  s1  s1  {s1,s2}   {}  {s1}";
 "    s2 ->  |  !  !   !   {s2,s3}   s2  s3";
 "    s3     |  {} s1  s3  s3        s3  s4";
@@ -147,7 +148,7 @@ let make_nfa (symbols:char option list)
 
 //parsing tables
 %token <int> STATE
-%token PIPE ARROW UNDERSCORE COMMA
+%token PIPE ARROW UNDERSCORE COMMA LINE
 
 
 //priorities and associativity of some operations
@@ -261,7 +262,11 @@ atomic_regexp:
 
 
 table:
-    | PIPE underscore first_line NEWLINE end_table NEWLINE { make_nfa ($2@$3) $5 }
+    | PIPE underscore first_line NEWLINE line end_table NEWLINE { make_nfa ($2@$3) $6 }
+
+line:
+            |               {}
+    | LINE NEWLINE  {}
 
 underscore:
     |            { [] }

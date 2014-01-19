@@ -11,6 +11,7 @@ let reg = "REG" [ '0'-'9' ]+
 let dfa = "DFA" [ '0'-'9' ]+
 let nfa = "NFA" [ '0'-'9' ]+
 let state = "s" [ '0'-'9' ]+
+let line = "-----" "-"*
 
 rule token = parse
   | '('             { LPAR }
@@ -48,6 +49,7 @@ rule token = parse
   | ":="            { AFFECT }
   | "->"            { ARROW }
   | "_"             { UNDERSCORE }
+  | line            { LINE }
 
   | [' ' '\t']      { token lexbuf }
   | '\n'            { NEWLINE }
