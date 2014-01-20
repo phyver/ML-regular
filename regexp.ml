@@ -126,8 +126,7 @@ let rec simplify (r:regexp) : regexp = match r with
             begin
                 let r = simplify r in
                 match r with
-                  | Zero -> Zero
-                  | One -> One
+                  | Zero | One -> One
                   | Star(r) -> Star(r)
                   | _ -> Star(simplify r)
             end
