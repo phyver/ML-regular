@@ -2,11 +2,14 @@
 open Parser
 
 let get_string s = String.sub s 1 ((String.length s) - 2)
+let get_symbol s = String.sub s 1 ((String.length s) - 1)
 let get_index s = String.sub s 3 ((String.length s) - 3)
 let get_state_index s = String.sub s 1 ((String.length s) - 1)
 }
-let symbol = [ 'a'-'z' ]
-let str = '"' symbol* '"'
+let lower_symbol = [ 'a'-'z' ]
+let character =  [ 'a'-'z' 'A'-'Z' '0'-'9' '.' ',' ]
+let symbol = "`" character
+let str = '"' character* '"'
 let reg = "REG" [ '0'-'9' ]+
 let dfa = "DFA" [ '0'-'9' ]+
 let nfa = "NFA" [ '0'-'9' ]+
@@ -24,7 +27,8 @@ rule token = parse
   | '*'             { STAR }
   | '0'             { ZERO }
   | '1'             { ONE }
-  | symbol          { SYMB(Lexing.lexeme_char lexbuf 0) }
+  | lower_symbol    { SYMB(Lexing.lexeme_char lexbuf 0) }
+  | symbol          { SYMB((Lexing.lexeme lexbuf).[1]) }
 
   | ','             { COMMA }
   | str             { STR(get_string (Lexing.lexeme lexbuf)) }

@@ -1,8 +1,7 @@
-{- automaton checking if a binary number is divisible by 3,
-   where o means 0 and l means 1 -}
+{- automaton checking if a binary number is divisible by 3 -}
 
 NFA1 :=
-            |   _   o   l
+            |   _   `0  `1
 ---------------------------
 -> s1 ->    |   !   s1  s2
    s2       |   !   s3  s1
@@ -10,8 +9,8 @@ NFA1 :=
 
 REG1 := < NFA1 >
 
-:assert "ll" < REG1
-:assert "llo" < REG1
-:assert "lool" < REG1
-:assert NOT "lolo" < REG1
+:assert "11" < REG1
+:assert "110" < REG1
+:assert "1001" < REG1
+:assert NOT "1010" < REG1
 

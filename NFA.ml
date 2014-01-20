@@ -147,7 +147,9 @@ module type NFAType = sig
     val from_dfa : dfa -> nfa
     val to_dfa : nfa -> dfa
 (*
-    val reachable : nfa -> nfa
+ *  TODO
+    val accessible : nfa -> nfa
+    val co_accessible : nfa -> nfa
     val remove_epsilon : nfa -> nfa
 *)
 end

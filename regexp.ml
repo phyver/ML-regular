@@ -33,7 +33,10 @@ type regexp =
 let rec string_of_regexp (r:regexp) : string = match r with
     | Zero -> "0"
     | One -> "1"
-    | Symb(a) -> String.make 1 a
+    | Symb(a) ->
+            if String.contains "abcdefghijklmnopqrstuvwxyz" a
+            then String.make 1 a
+            else "`" ^ String.make 1 a
     | Star(Zero as r) | Star(One as r) | Star(Symb(_) as r) ->
             (string_of_regexp r) ^ "*"
     | Star(r) -> "(" ^ (string_of_regexp r) ^ ")*"
