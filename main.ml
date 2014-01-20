@@ -1,46 +1,33 @@
 
-let verbose = ref true
-
-let read_file f =
-    let ch = open_in f in
-    print_endline ("reading file " ^ f);
+let read_channel ch prompt =
     try
         let lexbuf = Lexing.from_channel ch in
         while true
         do
-            begin
+            if prompt
+            then (print_string "> "; flush_all ());
             try
-                Parser.toplevel Lexer.token lexbuf
+                Parser.toplevel Lexer.token lexbuf;
+                flush_all()
             with
                 | Invalid_argument(s) ->  print_endline s
                 | Failure(msg) -> print_endline ("problem: " ^ msg); Lexing.flush_input lexbuf
                 | Parsing.Parse_error -> print_endline "parse error"
-            end;
         done
-    with End_of_file -> ()
+    with
+        | End_of_file -> print_newline()
 
 
 let main () =
     Array.iter (fun f ->
         try
-            read_file f
+            print_string ("reading file " ^ f);
+            let ch = open_in f in
+            read_channel ch false;
         with
             | Sys_error(er) -> print_endline er; exit 1
     ) (Array.sub Sys.argv 1 ((Array.length Sys.argv) - 1));
-
-    let lexbuf = Lexing.from_channel stdin in
-    while true
-    do
-        print_string "> "; flush_all ();
-        try
-            Parser.toplevel Lexer.token lexbuf;
-            flush_all()
-        with
-            | End_of_file -> print_newline (); exit 0
-            | Invalid_argument(s) ->  print_endline s
-            | Failure(msg) -> print_endline ("problem: " ^ msg); Lexing.flush_input lexbuf
-            | Parsing.Parse_error -> print_endline "parse error"
-    done
+    read_channel stdin true
 
 
 let _ = Printexc.print main ()
