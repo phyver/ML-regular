@@ -25,8 +25,8 @@ let do_help () =
 "  > expr == expr               test if the two expressions are equal";
 "  > expr > expr                test if the first expression has a larger language than the second";
 "  > expr < expr                test if the second expression has a larger language than the first";
+"  > EMPTY regexp/dfa           test if a DFA or a regexp has an empty language";
 "  > INFINITE regexp            test if the regexp has an infinite language";
-"  > EMPTY regexp               test if the regexp has an empty language";
 "";
 "  > :q                     quit";
 "  > :v                     toggle printing labels of states in automata";
@@ -117,6 +117,23 @@ let make_nfa (symbols:char option list)
 
     NFA_Regexp.from_matrix matrix init accepting
 
+let dfa_subset d1 d2 =
+    try
+        DFA_Regexp.subset ~counterexample:!verbose d1 d2
+    with DFA_Regexp.Found(u) ->
+        print_string "    <<< found counter-example: \"";
+        List.iter print_char u;
+        print_endline "\" >>>";
+        false
+
+let dfa_empty d =
+    try
+        DFA_Regexp.is_empty ~counterexample:!verbose d
+    with DFA_Regexp.Found(u) ->
+        print_string "    <<< found accepting word: \"";
+        List.iter print_char u;
+        print_endline "\" >>>";
+        false
 %}
 
 //typed tokens
@@ -190,12 +207,13 @@ assertion:
     | STR LT regexp                         { match_regexp $1 $3 }
     | STR LT dfa                            { DFA_Regexp.accepts $3 (explode $1) }
     | STR LT nfa                            { NFA_Regexp.accepts $3 (explode $1) }
-    | EMPTY regexp                          { is_empty $2 }
     | INFINITE regexp                       { is_infinite $2 }
+    | EMPTY regexp                          { is_empty $2 }
 
-    | dfa_expr DOUBLE_EQUAL dfa_expr        { DFA_Regexp.equal $1 $3 }
-    | dfa_expr LT dfa_expr                  { DFA_Regexp.subset $1 $3 }
-    | dfa_expr GT dfa_expr                  { DFA_Regexp.subset $3 $1 }
+    | EMPTY dfa                             { dfa_empty $2 }
+    | dfa_expr DOUBLE_EQUAL dfa_expr        { (dfa_subset $1 $3) && (dfa_subset $3 $1) }
+    | dfa_expr LT dfa_expr                  { dfa_subset $1 $3 }
+    | dfa_expr GT dfa_expr                  { dfa_subset $3 $1 }
 
 dfa_expr:
     | dfa       { $1 }

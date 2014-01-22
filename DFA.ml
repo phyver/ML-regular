@@ -133,8 +133,10 @@ module type DFAType = sig
         val union : dfa -> dfa -> dfa
         val intersection : dfa -> dfa -> dfa
 
-        val subset : dfa -> dfa -> bool
-        val equal : dfa -> dfa -> bool
+        exception Found of symbol list
+        val is_empty : ?counterexample:bool -> dfa -> bool
+        val subset : ?counterexample:bool -> dfa -> dfa -> bool
+        val equal : ?counterexample:bool -> dfa -> dfa -> bool
 end
 
 module Make(Symbol:OType) (State:OType)
@@ -600,6 +602,7 @@ module Make(Symbol:OType) (State:OType)
         }
 
     (* intersection of two automata *)
+    (* FIXME: I should only construct the accessible part *)
     let intersection (d1:dfa) (d2:dfa) : dfa =
         let states1 = get_states d1 in
         let states2 = get_states d2 in
@@ -641,6 +644,7 @@ module Make(Symbol:OType) (State:OType)
             symbols = SetSymbols.union d1.symbols d2.symbols    ;
         }
 
+    (* FIXME: I should only construct the accessible part *)
     let union (d1:dfa) (d2:dfa) : dfa =
         let states1 = get_states d1 in
         let states2 = get_states d2 in
@@ -690,33 +694,47 @@ module Make(Symbol:OType) (State:OType)
             symbols = SetSymbols.union d1.symbols d2.symbols    ;
         }
 
-
-    let subset (d1:dfa) (d2:dfa) : bool =
-        let d1 =
-        {
-            init = d1.init                                      ;
-            matrix = d1.matrix                                  ;
-            accepting = d1.accepting                            ;
-            symbols = SetSymbols.union d1.symbols d2.symbols    ;
-        }
+    exception Found of symbol list
+    let find_accepting (d:dfa) : symbol list =
+        let rec dfs (s:state) (seen:SetStates.t) (acc:symbol list) =
+            if is_accepting d s
+            then raise (Found (List.rev acc))
+            else if SetStates.mem s seen
+            then ()
+            else
+                let seen = SetStates.add s seen in
+                List.iter
+                    (fun a -> try dfs (next d s a) seen (a::acc)
+                              with Not_found -> ())
+                    (get_symbols d)
         in
+        try dfs (get_init d) SetStates.empty []; raise Not_found
+        with Found(w) -> w
 
-        let d2 =
-        {
-            init = d2.init                                      ;
-            matrix = d2.matrix                                  ;
-            accepting = d2.accepting                            ;
-            symbols = SetSymbols.union d1.symbols d2.symbols    ;
-        }
-        in
+    let is_empty ?(counterexample=false) (d:dfa) : bool =
+        try
+            let u = find_accepting d in
+            if counterexample
+            then raise (Found u)
+            else false
+        with Not_found -> true
 
+    let subset ?(counterexample=false) (d1:dfa) (d2:dfa) : bool =
+
+        (* FIXME: is it better to minimize or not??? *)
         let d1 = minimize d1 in
         let cd2 = minimize (complement d2 ~symbols:(get_symbols d1)) in
-        let d = minimize (intersection d1 cd2) in
-            SetStates.is_empty d.accepting
+        let d = intersection d1 cd2 in
+        try
+            let u = find_accepting d in
+            if counterexample
+            then raise (Found u)
+            else false
+        with Not_found -> true
 
-    let equal (d1:dfa) (d2:dfa) : bool =
-        (subset d1 d2) && (subset d2 d1)
+    let equal ?(counterexample=false) (d1:dfa) (d2:dfa) : bool =
+        (subset ~counterexample:counterexample d1 d2) &&
+        (subset ~counterexample:counterexample d2 d1)
 
 end
 

@@ -27,8 +27,10 @@ module type DFAType = sig
     val union : dfa -> dfa -> dfa
     val intersection : dfa -> dfa -> dfa
 
-    val subset : dfa -> dfa -> bool
-    val equal : dfa -> dfa -> bool
+    exception Found of symbol list
+    val is_empty : ?counterexample:bool -> dfa -> bool
+    val subset : ?counterexample:bool -> dfa -> dfa -> bool
+    val equal : ?counterexample:bool -> dfa -> dfa -> bool
   end
 
 module Make (Symbol:Misc.OType) (State:Misc.OType)

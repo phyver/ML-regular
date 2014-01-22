@@ -46,14 +46,14 @@ lexer.ml:
 
 clean:
 	rm -f *.cm[aoix] *.o
-	rm -f main
-	rm -f prof gmon.out
+	rm -f lexer.ml parser.ml parser.mli
+	rm -f gmon.out
 
 very_clean:
 	rm -f *.cm[aoix] *.o
 	rm -f lexer.ml parser.ml parser.mli
-	rm -f main
-	rm -f prof gmon.out
+	rm -f gmon.out
+	rm -f prof main
 
 
 include .depend
