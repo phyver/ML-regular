@@ -16,6 +16,9 @@ module type NFAType =
     val is_accepting : nfa -> state -> bool
     val next : nfa -> state -> symbol option -> state list
 
+    exception Found of symbol list
+    val is_empty : ?counterexample:bool -> nfa -> bool
+
     val print : ?show_labels:bool -> nfa -> unit
 
     val accepts : nfa -> symbol list -> bool

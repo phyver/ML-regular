@@ -25,7 +25,7 @@ let do_help () =
 "  > expr == expr               test if the two expressions are equal";
 "  > expr >> expr               test if the first expression has a larger language than the second";
 "  > expr << expr               test if the second expression has a larger language than the first";
-"  > EMPTY regexp/dfa           test if a DFA or a regexp has an empty language";
+"  > EMPTY expr                 test if a an expression has an empty language";
 "  > INFINITE regexp            test if the regexp has an infinite language";
 "";
 "  > :q                     quit";
@@ -144,6 +144,15 @@ let dfa_empty d =
         List.iter print_char u;
         print_endline "\" >>>";
         false
+
+let nfa_empty d =
+    try
+        NFA_Regexp.is_empty ~counterexample:!verbose d
+    with NFA_Regexp.Found(u) ->
+        print_string "    <<< found accepting word: \"";
+        List.iter print_char u;
+        print_endline "\" >>>";
+        false
 %}
 
 //typed tokens
@@ -218,8 +227,9 @@ assertion:
     | STR LT dfa                            { DFA_Regexp.accepts $3 (explode $1) }
     | STR LT nfa                            { NFA_Regexp.accepts $3 (explode $1) }
     | INFINITE regexp                       { is_infinite $2 }
-    | EMPTY regexp                          { is_empty $2 }
 
+    | EMPTY nfa                             { nfa_empty $2 }
+    | EMPTY regexp                          { is_empty $2 }
     | EMPTY dfa                             { dfa_empty $2 }
     | dfa_expr DOUBLE_EQUAL dfa_expr        { (dfa_subset $1 $3) && (dfa_subset $3 $1) }
     | dfa_expr LT dfa_expr                  { dfa_subset $1 $3 }

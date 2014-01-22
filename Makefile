@@ -1,3 +1,4 @@
+
 OCAMLYACC=ocamlyacc
 OCAMLLEX=ocamllex
 OCAMLC=ocamlc
@@ -30,10 +31,10 @@ prof: $(OPTFILES)
 	$(OCAMLOPT) -p $(INCLUDES) $(OPTFILES) -o prof prof.ml
 
 byte: $(BYTEFILES)
-	$(OCAMLC) $(INCLUDES) $(BYTEFILES) -o main main.ml
+	$(OCAMLC) $(INCLUDES) $(BYTEFILES) -o mlr main.ml
 
 opt: $(OPTFILES)
-	$(OCAMLOPT) $(INCLUDES) $(OPTFILES) -o main main.ml
+	$(OCAMLOPT) $(INCLUDES) $(OPTFILES) -o mlr main.ml
 
 depend: parser.ml lexer.ml
 	$(OCAMLDEP) $(OCAMLDEPFLAGS) *.ml *.mli > .depend
@@ -44,6 +45,10 @@ parser.ml:
 lexer.ml:
 	$(OCAMLLEX) $(OCAMLLEXFLAGS) lexer.mll
 
+install: opt
+	install -d $(HOME)/.local/bin
+	install ./mlr $(HOME)/.local/bin
+
 clean:
 	rm -f *.cm[aoix] *.o
 	rm -f lexer.ml parser.ml parser.mli
@@ -53,7 +58,7 @@ very_clean:
 	rm -f *.cm[aoix] *.o
 	rm -f lexer.ml parser.ml parser.mli
 	rm -f gmon.out
-	rm -f prof main
+	rm -f prof mlr
 
 
 include .depend

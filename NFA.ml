@@ -132,6 +132,9 @@ module type NFAType = sig
     val is_accepting : nfa -> state -> bool
     val next : nfa -> state -> symbol option -> state list
 
+    exception Found of symbol list
+    val is_empty : ?counterexample:bool -> nfa -> bool
+
     val print : ?show_labels:bool -> nfa -> unit
 
     val accepts : nfa -> symbol list -> bool
@@ -386,6 +389,42 @@ module Make (Symbol:OType) (State:OType)
         in
         let final = trans d.init w in
         not (SetStates.is_empty (SetStates.inter d.accepting final))
+
+
+    exception Found of symbol list
+    let find_accepting (d:nfa) : symbol list =
+
+        let symbols = get_symbols d in
+
+        let rec dfs (todo:state list) (seen:SetStates.t) (acc:symbol list) =
+            match todo with
+                | [] -> ()
+                | s::todo ->
+                    if is_accepting d s
+                    then raise (Found (List.rev acc))
+                    else if SetStates.mem s seen
+                    then ()
+                    else
+                        let seen = SetStates.add s seen in
+                        List.iter
+                            (fun a ->
+                                try
+                                List.iter
+                                        (fun s -> dfs todo seen (a::acc))
+                                        (next d s (Some(a)))
+                                with Not_found -> ())
+                            symbols
+        in
+        try dfs (get_init d) SetStates.empty []; raise Not_found
+        with Found(w) -> w
+
+    let is_empty ?(counterexample=false) (d:nfa) : bool =
+        try
+            let u = find_accepting d in
+            if counterexample
+            then raise (Found u)
+            else false
+        with Not_found -> true
 
 
     (* the "0" automaton *)
