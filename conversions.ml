@@ -101,7 +101,7 @@ let regexp_from_nfa ?(random=true) aut : regexp =
     let id s = idx s states in
 
     (*
-    let print_matrix s matrix = 
+    let print_matrix s matrix =
         print_endline (">>> "^s);
         IntIntMap.iter
             (fun st r -> print_int (fst st) ;

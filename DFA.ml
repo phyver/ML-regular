@@ -371,6 +371,7 @@ module Make(Symbol:OType) (State:OType)
         let symbols = uniq (List.sort Symbol.compare symbols) in
         let symbols = merge_inter symbols (get_symbols d) in
         *)
+
         let new_symbols =
             List.fold_left (fun acc a -> SetSymbols.add a acc) d.symbols symbols
         in
@@ -386,6 +387,13 @@ module Make(Symbol:OType) (State:OType)
 
         (* we rename all the existing states *)
         let matrix = LTS.map (fun s -> In(0,s)) d.matrix in
+
+        let accepting =
+            SetStates.fold
+                (fun s acc -> SetStates.add (In(0,s)) acc)
+                d.accepting
+                SetStates.empty
+        in
 
         (* we define a new, different state *)
         let new_state = In(1,Dummy("sink")) in
@@ -409,12 +417,6 @@ module Make(Symbol:OType) (State:OType)
                 else LTS.add (In(0,s)) a new_state matrix2
                 ) matrix1 symbols
                 ) matrix states
-        in
-        let accepting =
-            SetStates.fold
-                (fun s acc -> SetStates.add (In(0,s)) acc)
-                d.accepting
-                SetStates.empty
         in
         {
             init = In(0,d.init)     ;
@@ -607,6 +609,7 @@ module Make(Symbol:OType) (State:OType)
 
     (* intersection of two automata *)
     (* FIXME: I should only construct the accessible part *)
+    (* FIXME: doesn't work if the automata aren't total *)
     let intersection (d1:dfa) (d2:dfa) : dfa =
         let states1 = get_states d1 in
         let states2 = get_states d2 in
@@ -726,7 +729,7 @@ module Make(Symbol:OType) (State:OType)
     let subset ?(counterexample=false) (d1:dfa) (d2:dfa) : bool =
 
         (* FIXME: is it better to minimize or not??? *)
-        let d1 = minimize d1 in
+        let d1 = make_total ~symbols:(get_symbols d2) (minimize d1)  in
         let cd2 = minimize (complement d2 ~symbols:(get_symbols d1)) in
         let d = intersection d1 cd2 in
         try

@@ -1,3 +1,7 @@
 :assert [a] == [a]
 :assert NOT [a] == [b]
-
+:assert NOT 1 > a
+:assert NOT a > 1
+:assert NOT a > b
+:assert (# 0*) == 1
+:assert (# a**) == (# a*)

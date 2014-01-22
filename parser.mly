@@ -18,18 +18,18 @@ let do_help () =
 "  > NFA<n> := nfa              define a non-deterministic automaton";
 "  > NFA<n> := \\n table         define a non-deterministic automaton from a table";
 "";
-"  > \"string\" < regexp          matches the string against the regexp";
-"  > \"string\" < dfa             matches the string against the automaton";
-"  > \"string\" < nfa             matches the string against the automaton";
+"  > \"string\" << regexp         matches the string against the regexp";
+"  > \"string\" << dfa            matches the string against the automaton";
+"  > \"string\" << nfa            matches the string against the automaton";
 "";
 "  > expr == expr               test if the two expressions are equal";
-"  > expr > expr                test if the first expression has a larger language than the second";
-"  > expr < expr                test if the second expression has a larger language than the first";
+"  > expr >> expr               test if the first expression has a larger language than the second";
+"  > expr << expr               test if the second expression has a larger language than the first";
 "  > EMPTY regexp/dfa           test if a DFA or a regexp has an empty language";
 "  > INFINITE regexp            test if the regexp has an infinite language";
 "";
 "  > :q                     quit";
-"  > :v                     toggle printing labels of states in automata";
+"  > :v                     toggle verbosity";
 "  > :h                     help message";
 "";
 "Basic regexp are obtained from 0, 1, lowercase letters, +, *, concatenation,";
@@ -71,6 +71,16 @@ let do_help () =
 " -> s4     |  s4 s4  s4  s4        s4  s4";
 "";
     ]
+
+let toggle_verbosity () =
+    if !verbose
+    then (print_endline "verbosity is now off"; verbose := false)
+    else (
+        verbose := true;
+        print_endline "verbosity is now on:";
+        print_endline "  - full labels for automata will be displayed";
+        print_endline "  - counter examples given for false assertions"
+    )
 
 module IntMap = Map.Make(struct type t=int let compare=compare end)
 
@@ -144,7 +154,7 @@ let dfa_empty d =
 %token <int> REG
 
 //grouping
-%token LPAR RPAR LBR RBR LCURL RCURL
+%token LPAR RPAR LBR RBR LCURL RCURL LANGL RANGL
 
 //constants
 %token ONE ZERO
@@ -196,7 +206,7 @@ toplevel:
     | assertion NEWLINE                             { if $1 then print_endline "true" else print_endline "false" }
     | ASSERT assertion NEWLINE                      { assert $2 }
 
-    | VERBOSE NEWLINE                               { verbose := not !verbose }
+    | VERBOSE NEWLINE                               { toggle_verbosity () }
 
     | EOF                                           { raise End_of_file }
     | QUIT NEWLINE                                  { raise End_of_file }
@@ -275,8 +285,8 @@ atomic_regexp:
     | TRANS atomic_regexp           { transpose $2 }
     | atomic_regexp SLASH STR       { word_derivative $1 $3 }
     | PREF atomic_regexp            { prefix $2 }
-    | LT nfa GT                     { regexp_from_nfa $2 }
-    | LT dfa GT                     { regexp_from_nfa (NFA_Regexp.from_dfa $2) }
+    | LANGL nfa RANGL               { regexp_from_nfa $2 }
+    | LANGL dfa RANGL               { regexp_from_nfa (NFA_Regexp.from_dfa $2) }
 
 
 
@@ -285,7 +295,7 @@ table:
     | PIPE underscore first_line NEWLINE line end_table NEWLINE { make_nfa ($2@$3) $6 }
 
 line:
-            |               {}
+    |               {}
     | LINE NEWLINE  {}
 
 underscore:

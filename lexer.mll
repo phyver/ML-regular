@@ -36,8 +36,10 @@ rule token = parse
   | '/'             { SLASH }
   | '!'             { BANG }
   | '~'             { TILDE }
-  | '<'             { LT }
-  | '>'             { GT }
+  | '<'             { LANGL }
+  | '>'             { RANGL }
+  | "<<"            { LT }
+  | ">>"            { GT }
   | "=="            { DOUBLE_EQUAL }
   | '&'             { AMPER }
   | '|'             { PIPE }
