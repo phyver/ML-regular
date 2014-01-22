@@ -328,7 +328,11 @@ module Make(Symbol:OType) (State:OType)
                     actual_symbols
         in
 
-        let reachable_states = dfs (get_init d) SetStates.empty in
+        let reachable_states =
+            match actual_symbols with
+                | [] -> SetStates.singleton d.init
+                | _ -> dfs (get_init d) SetStates.empty
+        in
 
         (* we remove the transition that are not reachable
          * Note that it is not necessary to check reachability of the source
