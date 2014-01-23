@@ -9,7 +9,10 @@
 :assert (aaa)*aa == aa(aaa)*
 :assert (a+b)* == (a*b)*a*
 
-REG1 := (ac*)*
+
+:verbose
+REG1 := (# <RANDOM>)
+REG1
 DFA1 := [ REG1 ]
 NFA1 := { REG1 }
 :assert REG1 == DFA1

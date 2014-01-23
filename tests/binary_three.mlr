@@ -9,8 +9,8 @@ NFA1 :=
 
 REG1 := < NFA1 >
 
-:assert "11" < REG1
-:assert "110" < REG1
-:assert "1001" < REG1
-:assert NOT "1010" < REG1
+:assert "11" << REG1
+:assert "110" << REG1
+:assert "1001" << REG1
+:assert NOT "1010" << REG1
 

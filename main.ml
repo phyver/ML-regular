@@ -21,7 +21,7 @@ let read_channel ch prompt =
 let main () =
     Array.iter (fun f ->
         try
-            print_string ("reading file " ^ f);
+            print_endline ("reading file " ^ f);
             let ch = open_in f in
             read_channel ch false;
         with
