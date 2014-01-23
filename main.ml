@@ -5,7 +5,7 @@ let read_channel ch prompt =
         while true
         do
             if prompt
-            then (print_string "> "; flush_all ());
+            then (print_string "# "; flush_all ());
             try
                 Parser.toplevel Lexer.token lexbuf;
                 flush_all()

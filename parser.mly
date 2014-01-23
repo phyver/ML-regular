@@ -34,12 +34,18 @@ let do_help () =
 "";
 "Basic regexp are obtained from 0, 1, lowercase letters, +, *, concatenation,";
 "complementation (~), user defined regexp (REG<n>) and random regexps (<RANDOM>)";
-"Extended regexps are obtained from";
+"";
+"Regexps can also be generated with";
 "    regexp / \"string\"            the word derivative of the regexp wrt to the string";
 "    TRANS regexp                 the transposition of the regexp";
 "    PREF regexp                  regexp of prefixes";
 "    <nfa>                        the regexp associated to an automaton";
 "    <dfa>                        the regexp associated to an automaton";
+"    regexp ?                     the regexp zero or one time";
+"    regexp{<n>}                  the regexp <n> times";
+"    regexp{<m>,<n>}              the regexp at least <m> times, at most <n> times";
+"    regexp{<n>,}                 the regexp at least <n> times";
+"    regexp & regexp              the intersection of two regexp (using complements)";
 "A regexp can be of the form (# regexp) to prevent simplifying it.";
 "";
 "dfa are obtained from:";
@@ -65,12 +71,12 @@ let do_help () =
 "";
 "A table can be used to define a non-deterministic automaton.";
 "A table is given in the form";
-"           |  _  a   b    c       d    e";
-"-------------------------------------------";
-" -> s1 ->  |  !  s1  s1  {s1,s2}  {}  {s1}";
-"    s2 ->  |  !  !   !   {s2,s3}  s2  s3";
-"    s3     |  {} s1  s3  s3       s3  s4";
-" -> s4     |  s4 s4  s4  s4       s4  s4";
+"           |  _ a  b  c      d   e";
+"------------------------------------";
+" -> 1 ->  |  !  1  1  {1,2}  {}  {1}";
+"    2 ->  |  !  !  !  {2,3}  2   3";
+"    3     |  {} 1  3  3      3   4";
+" -> 4     |  4  4  4  4      4   4";
 "";
     ]
 
@@ -167,6 +173,27 @@ let assertion b =
             exit 1
         end
 
+let prod n r =
+    let rec aux n acc =
+        if n=1
+        then acc
+        else aux (n-1) (Product(r,acc))
+    in
+    if n < 1
+    then One
+    else aux n r
+
+let sum m n r =
+    let rec aux n acc p =
+        if n=0
+        then acc
+        else aux (n-1) (Sum(acc,p)) (Product(r,p))
+    in
+    if m>n
+    then One
+    else if m=n then prod m r
+    else Product(prod m r, aux (1+n-m) r One)
+
 %}
 
 //typed tokens
@@ -191,14 +218,14 @@ let assertion b =
 
 //misc
 %token NEWLINE EOF
-%token ASSERT VERBOSE QUIT HELP AFFECT NOT
+%token ASSERT VERBOSE QUIT HELP AFFECT NOT QUESTION
 %token <int> RANDOM
+%token <int> NUM
 
 //relations
 %token LT GT DOUBLE_EQUAL
 
 //parsing tables
-%token <int> STATE
 %token PIPE ARROW UNDERSCORE COMMA LINE
 
 
@@ -304,21 +331,30 @@ product_regexp:
     | atomic_regexp product_regexp      { Product($1, $2) }
 
 atomic_regexp:
-    | ZERO                          { Zero }
-    | ONE                           { One }
-    | SYMB                          { Symb($1) }
-    | LPAR raw_regexp RPAR          { $2 }
-    | atomic_regexp STAR            { Star($1) }
-    | TILDE atomic_regexp           { Neg($2) }
-    | REG                           { get_REG $1 }
-    | TRANS atomic_regexp           { transpose $2 }
-    | atomic_regexp SLASH STR       { word_derivative $1 $3 }
-    | PREF atomic_regexp            { prefix $2 }
-    | LANGL nfa RANGL               { regexp_from_nfa $2 }
-    | LANGL dfa RANGL               { regexp_from_nfa (NFA_Regexp.from_dfa $2) }
-    | LANGL RANDOM RANGL            { random_regexp $2 }
+    | ZERO                              { Zero }
+    | ONE                               { One }
+    | SYMB                              { Symb($1) }
+    | LPAR raw_regexp RPAR              { $2 }
+    | atomic_regexp STAR                { Star($1) }
+    | TILDE atomic_regexp               { Neg($2) }
+    | REG                               { get_REG $1 }
+    | TRANS atomic_regexp               { transpose $2 }
+    | atomic_regexp SLASH STR           { word_derivative $1 $3 }
+    | PREF atomic_regexp                { prefix $2 }
+    | LANGL nfa RANGL                   { regexp_from_nfa $2 }
+    | LANGL dfa RANGL                   { regexp_from_nfa (NFA_Regexp.from_dfa $2) }
+    | LANGL RANDOM RANGL                { random_regexp $2 }
 
+    | regexp QUESTION                   { Sum(One, $1) }
+    | regexp LCURL num RCURL            { prod $3 $1 }
+    | regexp LCURL num COMMA RCURL      { Product(prod $3 $1,Star($1)) }
+    | regexp LCURL num COMMA num RCURL  { sum $3 $5 $1}
+    | regexp AMPER regexp               { Neg(Sum(Neg($1),Neg($3))) }
 
+num:
+    | NUM   { $1 }
+    | ONE   { 1 }
+    | ZERO  { 0 }
 
 
 table:
@@ -341,7 +377,7 @@ end_table:
     | table_line NEWLINE end_table  { $1::$3 }
 
 table_line:
-    | arrow STATE arrow PIPE transitions     { ($1,$2,$3,$5) }
+    | arrow num arrow PIPE transitions     { ($1,$2,$3,$5) }
 
 arrow:
     |           { false }
@@ -350,11 +386,11 @@ arrow:
 transitions:
     |                                   { [] }
     | BANG transitions                  { []::$2 }
-    | STATE transitions                 { [$1]::$2 }
-    | LCURL states RCURL transitions    { $2::$4 }
+    | num transitions                 { [$1]::$2 }
+    | LCURL nums RCURL transitions    { $2::$4 }
 
-states:
+nums:
     |                                   { [] }
-    | STATE                             { [$1] }
-    | STATE COMMA states                { $1::$3 }
+    | num                             { [$1] }
+    | num COMMA nums                { $1::$3 }
 

@@ -4,7 +4,6 @@ open Parser
 let get_string s = String.sub s 1 ((String.length s) - 2)
 let get_symbol s = String.sub s 1 ((String.length s) - 1)
 let get_index s = int_of_string (String.sub s 3 ((String.length s) - 3))
-let get_state_index s = String.sub s 1 ((String.length s) - 1)
 let get_random s =
     let s = String.sub s 6 ((String.length s) - 6) in
     try int_of_string s
@@ -17,9 +16,9 @@ let str = '"' character* '"'
 let reg = "REG" [ '0'-'9' ]+
 let dfa = "DFA" [ '0'-'9' ]+
 let nfa = "NFA" [ '0'-'9' ]+
-let state = "s" [ '0'-'9' ]+
 let random = "RANDOM" [ '0'-'9' ]*
 let line = "-----" "-"*
+let num = [ '0'-'9' ]+
 
 rule token = parse
   | '('             { LPAR }
@@ -59,11 +58,12 @@ rule token = parse
   | reg             { REG(get_index (Lexing.lexeme lexbuf)) }
   | dfa             { DFA(get_index (Lexing.lexeme lexbuf)) }
   | nfa             { NFA(get_index (Lexing.lexeme lexbuf)) }
-  | state           { STATE(int_of_string (get_state_index (Lexing.lexeme lexbuf))) }
   | ":="            { AFFECT }
   | "->"            { ARROW }
   | "_"             { UNDERSCORE }
   | line            { LINE }
+  | '?'             { QUESTION }
+  | num             { NUM(int_of_string (Lexing.lexeme lexbuf)) }
 
   | [' ' '\t']      { token lexbuf }
   | '\n'            { Lexing.new_line lexbuf; NEWLINE }
