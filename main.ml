@@ -10,9 +10,18 @@ let read_channel ch prompt =
                 Parser.toplevel Lexer.token lexbuf;
                 flush_all()
             with
-                | Invalid_argument(s) ->  print_endline s
-                | Failure(msg) -> print_endline ("*** problem: " ^ msg); Lexing.flush_input lexbuf
-                | Parsing.Parse_error -> print_endline "*** parse error"; Lexing.flush_input lexbuf
+                | Invalid_argument(s) ->
+                        print_endline s
+                | Failure(msg) ->
+                        begin
+                            print_endline ("*** problem: " ^ msg);
+                            Lexing.flush_input lexbuf
+                        end
+                | Parsing.Parse_error ->
+                        begin
+                            print_endline "*** parse error";
+                            Lexing.flush_input lexbuf
+                        end
         done
     with
         | End_of_file -> print_newline()

@@ -329,35 +329,34 @@ raw_regexp:
     | sum_regexp { $1 }
 
 sum_regexp:
-    | product_regexp                    { $1 }
-    | product_regexp PLUS sum_regexp    { Sum($1, $3) }
+    | product_regexp                { $1 }
+    | sum_regexp PLUS sum_regexp    { Sum($1, $3) }
+    | sum_regexp AMPER sum_regexp   { Neg(Sum(Neg($1),Neg($3))) }
 
 product_regexp:
     | atomic_regexp                     { $1 }
     | atomic_regexp product_regexp      { Product($1, $2) }
 
 atomic_regexp:
-    | ZERO                              { Zero }
-    | ONE                               { One }
-    | SYMB                              { Symb($1) }
-    | LPAR raw_regexp RPAR              { $2 }
-    | atomic_regexp STAR                { Star($1) }
-    | TILDE atomic_regexp               { Neg($2) }
+    | ZERO                                  { Zero }
+    | ONE                                   { One }
+    | SYMB                                  { Symb($1) }
+    | LPAR raw_regexp RPAR                  { $2 }
+    | atomic_regexp STAR                    { Star($1) }
+    | TILDE atomic_regexp                   { Neg($2) }
 
-    | REG                               { get_REG $1 }
-    | TRANS atomic_regexp               { transpose $2 }
-    | PREF atomic_regexp                { prefix $2 }
-    | LANGL nfa RANGL                   { regexp_from_nfa $2 }
-    | LANGL dfa RANGL                   { regexp_from_nfa (NFA_Regexp.from_dfa $2) }
-    | LANGL RANDOM RANGL                { random_regexp $2 }
-    | atomic_regexp SLASH STR           { word_derivative $1 $3 }
+    | REG                                   { get_REG $1 }
+    | TRANS atomic_regexp                   { transpose $2 }
+    | PREF atomic_regexp                    { prefix $2 }
+    | LANGL nfa RANGL                       { regexp_from_nfa $2 }
+    | LANGL dfa RANGL                       { regexp_from_nfa (NFA_Regexp.from_dfa $2) }
+    | LANGL RANDOM RANGL                    { random_regexp $2 }
+    | atomic_regexp SLASH STR               { word_derivative $1 $3 }
 
-    /* synomyms */
-    | regexp QUESTION                   { Sum(One, $1) }
-    | regexp LCURL num RCURL            { prod $3 $1 }
-    | regexp LCURL num COMMA RCURL      { Product(prod $3 $1,Star($1)) }
-    | regexp LCURL num COMMA num RCURL  { sum $3 $5 $1}
-    | regexp AMPER regexp               { Neg(Sum(Neg($1),Neg($3))) }
+    | atomic_regexp QUESTION                   { Sum(One, $1) }
+    | atomic_regexp LCURL num RCURL            { prod $3 $1 }
+    | atomic_regexp LCURL num COMMA RCURL      { Product(prod $3 $1,Star($1)) }
+    | atomic_regexp LCURL num COMMA num RCURL  { sum $3 $5 $1}
 
 num:
     | NUM   { $1 }
