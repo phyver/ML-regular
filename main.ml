@@ -11,8 +11,8 @@ let read_channel ch prompt =
                 flush_all()
             with
                 | Invalid_argument(s) ->  print_endline s
-                | Failure(msg) -> print_endline ("problem: " ^ msg); Lexing.flush_input lexbuf
-                | Parsing.Parse_error -> print_endline "parse error"
+                | Failure(msg) -> print_endline ("*** problem: " ^ msg); Lexing.flush_input lexbuf
+                | Parsing.Parse_error -> print_endline "*** parse error"; Lexing.flush_input lexbuf
         done
     with
         | End_of_file -> print_newline()
@@ -25,7 +25,7 @@ let main () =
 
     Array.iter (fun f ->
         try
-            print_endline ("reading file " ^ f);
+            print_endline (">>> reading file " ^ f);
             let ch = open_in f in
             read_channel ch false;
         with
