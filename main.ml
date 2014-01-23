@@ -19,6 +19,10 @@ let read_channel ch prompt =
 
 
 let main () =
+    print_endline "        >>> ML-regular: experimenting with regular expressions  <<<";
+    print_endline "        >>> deterministic and non deterministic finite automata <<<";
+    print_newline ();
+
     Array.iter (fun f ->
         try
             print_endline ("reading file " ^ f);
