@@ -8,29 +8,34 @@ let verbose = ref false
 let do_help () =
     List.iter print_endline
     [
+"                      ML-Regular";
+"";
+"Small program for experimenting with regular expressions and automata.";
+"";
 "Commands:";
-"  > regexp                     print the regexp";
-"  > dfa                        print the table of the automaton";
-"  > nfa                        print the table of the automaton";
+"  # regexp                     print the regexp";
+"  # dfa                        print the table of the automaton";
+"  # nfa                        print the table of the automaton";
 "";
-"  > REG<n> := regexp           define a regexp";
-"  > DFA<n> := dfa              define a deterministic automaton";
-"  > NFA<n> := nfa              define a non-deterministic automaton";
-"  > NFA<n> := \\n table         define a non-deterministic automaton from a table";
+"  # REG<n> := regexp           define a regexp";
+"  # DFA<n> := dfa              define a deterministic automaton";
+"  # NFA<n> := nfa              define a non-deterministic automaton";
+"  # NFA<n> := \\n table         define a non-deterministic automaton from a table";
 "";
-"  > \"string\" << regexp         matches the string against the regexp";
-"  > \"string\" << dfa            matches the string against the automaton";
-"  > \"string\" << nfa            matches the string against the automaton";
+"  # \"string\" << regexp         matches the string against the regexp";
+"  # \"string\" << dfa            matches the string against the automaton";
+"  # \"string\" << nfa            matches the string against the automaton";
 "";
-"  > expr == expr               test if the two expressions are equal";
-"  > expr >> expr               test if the first expression has a larger language than the second";
-"  > expr << expr               test if the second expression has a larger language than the first";
-"  > EMPTY expr                 test if a an expression has an empty language";
-"  > INFINITE regexp            test if the regexp has an infinite language";
+"  # expr == expr               test if the two expressions are equal";
+"  # expr >> expr               test if the first expression has a larger language than the second";
+"  # expr << expr               test if the second expression has a larger language than the first";
+"  # EMPTY expr                 test if a an expression has an empty language";
+"  # INFINITE regexp            test if the regexp has an infinite language";
 "";
-"  > :q                     quit";
-"  > :v                     toggle verbosity";
-"  > :h                     help message";
+"  # :quit                      quit";
+"  # :verbose                   toggle verbosity";
+"  # :help                      help message";
+"  # ?                          help message";
 "";
 "Basic regexp are obtained from 0, 1, lowercase letters, +, *, concatenation,";
 "complementation (~), user defined regexp (REG<n>) and random regexps (<RANDOM>)";
@@ -245,7 +250,8 @@ toplevel:
     | command NEWLINE                               { $1 }
 
 command:
-    | HELP                                          { do_help() }
+    | HELP                                          { do_help () }
+    | QUESTION                                      { do_help () }
 
     | dfa                                           { DFA_Regexp.print ~show_labels:!verbose $1 ; print_newline () }
     | nfa                                           { NFA_Regexp.print ~show_labels:!verbose $1 ; print_newline () }
@@ -297,11 +303,11 @@ dfa:
 alphabet:
     |                               { [] }
     | SLASH LCURL elements RCURL    { $3 }
+
 elements:
     |                       { [] }
     | SYMB                  { [$1] }
     | SYMB COMMA elements   { $1::$3 }
-
 
 nfa:
     | LPAR nfa RPAR                 { $2 }
@@ -337,14 +343,16 @@ atomic_regexp:
     | LPAR raw_regexp RPAR              { $2 }
     | atomic_regexp STAR                { Star($1) }
     | TILDE atomic_regexp               { Neg($2) }
+
     | REG                               { get_REG $1 }
     | TRANS atomic_regexp               { transpose $2 }
-    | atomic_regexp SLASH STR           { word_derivative $1 $3 }
     | PREF atomic_regexp                { prefix $2 }
     | LANGL nfa RANGL                   { regexp_from_nfa $2 }
     | LANGL dfa RANGL                   { regexp_from_nfa (NFA_Regexp.from_dfa $2) }
     | LANGL RANDOM RANGL                { random_regexp $2 }
+    | atomic_regexp SLASH STR           { word_derivative $1 $3 }
 
+    /* synomyms */
     | regexp QUESTION                   { Sum(One, $1) }
     | regexp LCURL num RCURL            { prod $3 $1 }
     | regexp LCURL num COMMA RCURL      { Product(prod $3 $1,Star($1)) }
@@ -355,7 +363,6 @@ num:
     | NUM   { $1 }
     | ONE   { 1 }
     | ZERO  { 0 }
-
 
 table:
     | PIPE underscore first_line NEWLINE line end_table NEWLINE { make_nfa ($2@$3) $6 }
