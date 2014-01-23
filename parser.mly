@@ -53,7 +53,9 @@ let do_help () =
 "     ~dfa / {a,b,c...}         complement of the automaton, with additional symbols";
 "";
 "nfa are obtained from:";
-"     {regexp}                  automaton inductively obtained from the regexp";
+"     {I regexp}                automaton inductively obtained from the regexp";
+"     {D regexp}                automaton obtained from the derivatives of the regexp";
+"     {regexp}                  automaton obtained from the derivatives of the regexp";
 "     {dfa}                     the same automaton, seen as non-deterministic";
 "     NFA<n>                    user defined automaton";
 "     nfa + nfa                 union of the two automata";
@@ -63,12 +65,12 @@ let do_help () =
 "";
 "A table can be used to define a non-deterministic automaton.";
 "A table is given in the form";
-"           |  _  a   b    c        d    e";
-"--------------------------------------------";
-" -> s1 ->  |  !  s1  s1  {s1,s2}   {}  {s1}";
-"    s2 ->  |  !  !   !   {s2,s3}   s2  s3";
-"    s3     |  {} s1  s3  s3        s3  s4";
-" -> s4     |  s4 s4  s4  s4        s4  s4";
+"           |  _  a   b    c       d    e";
+"-------------------------------------------";
+" -> s1 ->  |  !  s1  s1  {s1,s2}  {}  {s1}";
+"    s2 ->  |  !  !   !   {s2,s3}  s2  s3";
+"    s3     |  {} s1  s3  s3       s3  s4";
+" -> s4     |  s4 s4  s4  s4       s4  s4";
 "";
     ]
 
@@ -161,10 +163,8 @@ let assertion b =
         begin
             let pos = Parsing.symbol_start_pos () in
             let lineNum = pos.Lexing.pos_lnum in
-            let fileName = pos.Lexing.pos_fname in
-            let posNum = pos.Lexing.pos_cnum in
-            print_endline ("Assertion failed on line " ^ (string_of_int lineNum) ^ " in file " ^ fileName);
-            assert false
+            print_endline ("*** Assertion failed on line " ^ (string_of_int lineNum) ^ " ***");
+            exit 1
         end
 
 %}
@@ -177,7 +177,7 @@ let assertion b =
 %token <int> REG
 
 //grouping
-%token LPAR RPAR LBR RBR LCURL RCURL LANGL RANGL
+%token LPARHASH LPAR RPAR LBR RBR LCURLI LCURLD LCURL RCURL LANGL RANGL
 
 //constants
 %token ONE ZERO
@@ -185,7 +185,6 @@ let assertion b =
 
 //unary
 %token STAR TILDE BANG
-%token HASH
 
 //binary
 %token PLUS AMPER DOT SLASH
@@ -236,7 +235,7 @@ command:
     | VERBOSE                                       { toggle_verbosity () }
 
     | EOF                                           { raise End_of_file }
-    | QUIT                                          { raise End_of_file }
+    | QUIT                                          { exit 0 }
     |                                               { () }
 
 assertion:
@@ -279,7 +278,9 @@ elements:
 
 nfa:
     | LPAR nfa RPAR                 { $2 }
-    | LCURL regexp RCURL            { nfa_from_regexp $2 }
+    | LCURL regexp RCURL            { nfa_from_regexp_derivative $2 }
+    | LCURLD regexp RCURL           { nfa_from_regexp_derivative $2 }
+    | LCURLI regexp RCURL           { nfa_from_regexp_inductive $2 }
     | nfa PIPE nfa                  { NFA_Regexp.union $1 $3 }
     | nfa STAR                      { NFA_Regexp.star $1 }
     | nfa DOT nfa                   { NFA_Regexp.concat $1 $3 }
@@ -289,7 +290,7 @@ nfa:
 
 regexp:
     | raw_regexp                    { simplify $1 }
-    | LPAR HASH raw_regexp RPAR     { $3 }
+    | LPARHASH raw_regexp RPAR      { $2 }
 
 raw_regexp:
     | sum_regexp { $1 }

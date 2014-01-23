@@ -32,4 +32,11 @@ REG3
 REG4 := < ~ [ < ~ [REG3] / {a,b,c,d,e} > ] / {a,b,c,d,e} >
 :assert REG3 == REG4
 
+
+REG5 := (# <RANDOM10>)
+REG5
+NFA5 := {D REG5}
+NFA6 := {I REG5}
+:assert NFA5 == NFA6
+
 :quit

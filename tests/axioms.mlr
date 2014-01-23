@@ -29,3 +29,5 @@ REG3
 :assert                 (# REG1*)  ==  (# (REG1 REG1 REG1)* (1 + REG1 + REG1 REG1))
 :assert                 (# REG1*)  ==  (# (REG1 REG1 REG1 REG1)* (1 + REG1 + REG1 REG1 + REG1 REG1 REG1))
 :assert                 (# REG1*)  ==  (# (REG1 REG1 REG1 REG1 REG1)* (1 + REG1 + REG1 REG1 + REG1 REG1 REG1 + REG1 REG1 REG1 REG1))
+
+:quit

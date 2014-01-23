@@ -23,9 +23,12 @@ let line = "-----" "-"*
 
 rule token = parse
   | '('             { LPAR }
+  | "(#"            { LPARHASH }
   | ')'             { RPAR }
   | '['             { LBR }
   | ']'             { RBR }
+  | "{I"            { LCURLI }
+  | "{D"            { LCURLD }
   | '{'             { LCURL }
   | '}'             { RCURL }
   | '+'             { PLUS }
@@ -37,7 +40,6 @@ rule token = parse
 
   | ','             { COMMA }
   | str             { STR(get_string (Lexing.lexeme lexbuf)) }
-  | '#'             { HASH }
   | '/'             { SLASH }
   | '!'             { BANG }
   | '~'             { TILDE }
