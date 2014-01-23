@@ -244,7 +244,7 @@ module Make (Symbol:OType) (State:OType)
         }
 
     let get_states (aut:nfa) : state list =
-        SetStates.elements (LTS.get_states aut.matrix)
+        SetStates.elements (SetStates.union (aut.init) (SetStates.union aut.accepting (LTS.get_states aut.matrix)))
 
     let get_symbols (aut:nfa) : symbol list =
         SetSymbols.elements (aut.symbols)

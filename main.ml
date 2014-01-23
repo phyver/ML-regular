@@ -19,6 +19,7 @@ let read_channel ch prompt =
 
 
 let main () =
+    Random.self_init ();
     print_endline "        >>> ML-regular: experimenting with regular expressions  <<<";
     print_endline "        >>> deterministic and non deterministic finite automata <<<";
     print_newline ();

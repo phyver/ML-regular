@@ -203,8 +203,10 @@ let regexp_from_nfa ?(random=true) aut : regexp =
     let matrix = remove_all_states matrix states in
 
     (* we get the only entry from the initial state to the final state *)
-    assert (1 = IntIntMap.cardinal matrix);
-    IntIntMap.find (init,final) matrix
+    assert (2 > IntIntMap.cardinal matrix);
+    try
+        IntIntMap.find (init,final) matrix
+    with Not_found -> Zero
 
 
 (* the same, but we try it many times and keep the smallest regexp *)

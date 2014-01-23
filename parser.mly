@@ -153,6 +153,20 @@ let nfa_empty d =
         List.iter print_char u;
         print_endline "\" >>>";
         false
+
+
+let assertion b =
+    if not b
+    then
+        begin
+            let pos = Parsing.symbol_start_pos () in
+            let lineNum = pos.Lexing.pos_lnum in
+            let fileName = pos.Lexing.pos_fname in
+            let posNum = pos.Lexing.pos_cnum in
+            print_endline ("Assertion failed on line " ^ (string_of_int lineNum) ^ " in file " ^ fileName);
+            assert false
+        end
+
 %}
 
 //typed tokens
@@ -179,7 +193,7 @@ let nfa_empty d =
 //misc
 %token NEWLINE EOF
 %token ASSERT VERBOSE QUIT HELP AFFECT NOT
-%token RANDOM
+%token <int> RANDOM
 
 //relations
 %token LT GT DOUBLE_EQUAL
@@ -202,25 +216,28 @@ let nfa_empty d =
 %%
 
 toplevel:
-    | HELP NEWLINE                                  { do_help() }
+    | command NEWLINE                               { $1 }
 
-    | dfa NEWLINE                                   { DFA_Regexp.print ~show_labels:!verbose $1 ; print_newline () }
-    | nfa NEWLINE                                   { NFA_Regexp.print ~show_labels:!verbose $1 ; print_newline () }
-    | regexp NEWLINE                                { print_regexp $1 ; print_newline () }
+command:
+    | HELP                                          { do_help() }
 
-    | REG AFFECT regexp NEWLINE                     { list_REG := IntMap.add $1 $3 !list_REG }
-    | DFA AFFECT dfa NEWLINE                        { list_DFA := IntMap.add $1 $3 !list_DFA }
-    | NFA AFFECT nfa NEWLINE                        { list_NFA := IntMap.add $1 $3 !list_NFA }
+    | dfa                                           { DFA_Regexp.print ~show_labels:!verbose $1 ; print_newline () }
+    | nfa                                           { NFA_Regexp.print ~show_labels:!verbose $1 ; print_newline () }
+    | regexp                                        { print_regexp $1 ; print_newline () }
+
+    | REG AFFECT regexp                             { list_REG := IntMap.add $1 $3 !list_REG }
+    | DFA AFFECT dfa                                { list_DFA := IntMap.add $1 $3 !list_DFA }
+    | NFA AFFECT nfa                                { list_NFA := IntMap.add $1 $3 !list_NFA }
     | NFA AFFECT NEWLINE table                      { list_NFA := IntMap.add $1 $4 !list_NFA }
 
-    | assertion NEWLINE                             { if $1 then print_endline "true" else print_endline "false" }
-    | ASSERT assertion NEWLINE                      { assert $2 }
+    | assertion                                     { if $1 then print_endline "true" else print_endline "false" }
+    | ASSERT assertion                              { assertion $2 }
 
-    | VERBOSE NEWLINE                               { toggle_verbosity () }
+    | VERBOSE                                       { toggle_verbosity () }
 
     | EOF                                           { raise End_of_file }
-    | QUIT NEWLINE                                  { raise End_of_file }
-    | NEWLINE                                       { () }
+    | QUIT                                          { raise End_of_file }
+    |                                               { () }
 
 assertion:
     | NOT assertion                         { not $2 }
@@ -298,7 +315,7 @@ atomic_regexp:
     | PREF atomic_regexp            { prefix $2 }
     | LANGL nfa RANGL               { regexp_from_nfa $2 }
     | LANGL dfa RANGL               { regexp_from_nfa (NFA_Regexp.from_dfa $2) }
-    | LANGL RANDOM RANGL            { random_regexp 10 }
+    | LANGL RANDOM RANGL            { random_regexp $2 }
 
 
 

@@ -15,6 +15,21 @@ REG1 := (# <RANDOM>)
 REG1
 DFA1 := [ REG1 ]
 NFA1 := { REG1 }
+REG2 := < DFA1 >
+DFA2 := [ NFA1 ]
+NFA2 := { REG2 }
+
 :assert REG1 == DFA1
 :assert REG1 == NFA1
 :assert NFA1 == DFA1
+:assert NFA2 == NFA1
+:assert DFA2 == REG2
+:assert NFA2 == DFA2
+:assert REG2 == REG1
+
+REG3 := (# <RANDOM>)
+REG3
+REG4 := < ~ [ < ~ [REG3] / {a,b,c,d,e} > ] / {a,b,c,d,e} >
+:assert REG3 == REG4
+
+:quit
