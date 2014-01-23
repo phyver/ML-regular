@@ -1,7 +1,17 @@
 :assert [a] == [a]
 :assert NOT [a] == [b]
-:assert NOT 1 > a
-:assert NOT a > 1
-:assert NOT a > b
+:assert NOT 1 >> a
+:assert NOT a >> 1
+:assert NOT a >> b
 :assert (# 0*) == 1
 :assert (# a**) == (# a*)
+:assert (aaa)*aa == a(aaa)*a
+:assert (aaa)*aa == aa(aaa)*
+:assert (a+b)* == (a*b)*a*
+
+REG1 := (ac*)*
+DFA1 := [ REG1 ]
+NFA1 := { REG1 }
+:assert REG1 == DFA1
+:assert REG1 == NFA1
+:assert NFA1 == DFA1

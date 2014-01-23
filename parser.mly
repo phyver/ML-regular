@@ -338,4 +338,3 @@ states:
     | STATE                             { [$1] }
     | STATE COMMA states                { $1::$3 }
 
-

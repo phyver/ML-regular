@@ -551,26 +551,37 @@ module Make (Symbol:OType) (State:OType)
 
     (* the Kleene star of an automaton *)
     let star (d:nfa) : nfa =
-        let init = get_init d in
-        let accepting = SetStates.elements d.accepting in
+        (* we rename the states of d *)
+        let matrix = LTS.map (fun s -> In(1,s)) d.matrix in
 
-        (* we add epsilon transitions from each accepting state to
-         * each starting state, and from each starting state to each accepting
-         * state (for the empty word) *)
+        (* we get the initial / final states of this automata *)
+        let init = List.map (fun s -> In(1,s)) (get_init d) in
+        let accepting = List.map (fun s -> In(1,s)) (SetStates.elements d.accepting) in
+
+
+        (* new starting state *)
+        let new_init = Dummy("star") in
+
+        (* we add epsilon transitions from each accepting state to the new
+         * starting state *)
         let matrix =
-            List.fold_left (fun matrix i ->
             List.fold_left (fun matrix f ->
-                let matrix = LTS.add f None i matrix in
-                let matrix = LTS.add i None f matrix in
+                let matrix = LTS.add f None new_init matrix in
                 matrix
             ) matrix accepting
-            ) d.matrix init
+        in
+        (* and from the new starting state to each accepting state *)
+        let matrix =
+            List.fold_left (fun matrix i ->
+                let matrix = LTS.add new_init None i matrix in
+                matrix
+            ) matrix init
         in
         {
-            init = d.init               ;
-            matrix = matrix             ;
-            accepting = d.accepting     ;
-            symbols = d.symbols         ;
+            init = SetStates.singleton new_init         ;
+            matrix = matrix                             ;
+            accepting = SetStates.singleton new_init    ;
+            symbols = d.symbols                         ;
         }
 
     (* reversal of an automaton *)
