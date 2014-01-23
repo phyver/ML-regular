@@ -48,6 +48,7 @@ rule token = parse
   | "PREF"          { PREF }
   | "EMPTY"         { EMPTY }
   | "INFINITE"      { INFINITE }
+  | "RANDOM"        { RANDOM }
   | reg             { REG(int_of_string (get_index (Lexing.lexeme lexbuf))) }
   | dfa             { DFA(int_of_string (get_index (Lexing.lexeme lexbuf))) }
   | nfa             { NFA(int_of_string (get_index (Lexing.lexeme lexbuf))) }

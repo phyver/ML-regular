@@ -295,3 +295,25 @@ let rec prefix (r:regexp) : regexp = match r with
     | Star(r) -> simplify_product (Star(r)) (prefix r)
     | Neg(r) -> raise (Failure "cannot compute directly the prefix of a complement regexp")
 
+(* random regexp of (at most) given depth using a given alphabet *)
+let rec random_regexp ?(alphabet=['a';'b';'c';'d';'e']) n =
+    if n < 1
+    then
+        begin
+            match Random.int 9 with
+                | 0 -> Zero
+                | 1 | 2 | 3 -> One
+                | 4 | 5 | 6 | 7 | 8 -> Symb(List.nth alphabet (Random.int (List.length alphabet)))
+                | _ -> assert false
+        end
+    else
+        begin
+            match Random.int 33 with
+                | 0 -> Zero
+                | 1 | 2 | 3 -> One
+                | 4 | 5 | 6 | 8  -> Symb(List.nth alphabet (Random.int (List.length alphabet)))
+                | x when x < 17 -> Sum(random_regexp (n-1), random_regexp (n-1))
+                | x when x < 25 -> Product(random_regexp (n-1), random_regexp (n-1))
+                | x when x < 33 -> Star(random_regexp (n-1))
+                | _ -> assert false
+        end

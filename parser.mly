@@ -33,7 +33,7 @@ let do_help () =
 "  > :h                     help message";
 "";
 "Basic regexp are obtained from 0, 1, lowercase letters, +, *, concatenation,";
-"complementation (~) and user defined regexp (REG<n>)";
+"complementation (~), user defined regexp (REG<n>) and random regexps (<RANDOM>)";
 "Extended regexps are obtained from";
 "    regexp / \"string\"            the word derivative of the regexp wrt to the string";
 "    TRANS regexp                 the transposition of the regexp";
@@ -179,6 +179,7 @@ let nfa_empty d =
 //misc
 %token NEWLINE EOF
 %token ASSERT VERBOSE QUIT HELP AFFECT NOT
+%token RANDOM
 
 //relations
 %token LT GT DOUBLE_EQUAL
@@ -297,6 +298,7 @@ atomic_regexp:
     | PREF atomic_regexp            { prefix $2 }
     | LANGL nfa RANGL               { regexp_from_nfa $2 }
     | LANGL dfa RANGL               { regexp_from_nfa (NFA_Regexp.from_dfa $2) }
+    | LANGL RANDOM RANGL            { random_regexp 10 }
 
 
 
