@@ -365,7 +365,7 @@ num:
     | ZERO  { 0 }
 
 table:
-    | PIPE underscore first_line NEWLINE line end_table NEWLINE { make_nfa ($2@$3) $6 }
+    | PIPE underscore first_line NEWLINE line end_table { make_nfa ($2@$3) $6 }
 
 line:
     |               {}
@@ -381,6 +381,7 @@ first_line:
 
 end_table:
     |                               { [] }
+    | LINE                          { [] }
     | table_line NEWLINE end_table  { $1::$3 }
 
 table_line:
