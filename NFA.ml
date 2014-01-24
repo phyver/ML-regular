@@ -283,7 +283,7 @@ module Make (Symbol:OType) (State:OType)
         (* transform a set of states into a string *)
         let set_to_string ss =
             match ss with
-            | [] -> "!"
+            | [] -> "_"
             | s::ss -> (state_to_string s) ^
                        (List.fold_right (fun s str ->
                                    "," ^ (state_to_string s) ^ str

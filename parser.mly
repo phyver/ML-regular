@@ -4,6 +4,7 @@ open Regexp
 open Conversions
 
 let verbose = ref false
+let quiet = ref false
 
 let do_help () =
     List.iter print_endline
@@ -34,6 +35,7 @@ let do_help () =
 "";
 "  # :quit                      quit";
 "  # :verbose                   toggle verbosity";
+"  # :quiet                     toggle printing results of affectations R<n>, D<n> and N<n>";
 "  # :help                      help message";
 "  # ?                          help message";
 "";
@@ -78,8 +80,8 @@ let do_help () =
 "A table is given in the form";
 "           |  _ a  b  c      d   e";
 "------------------------------------";
-" -> 1 ->  |  !  1  1  {1,2}  {}  {1}";
-"    2 ->  |  !  !  !  {2,3}  2   3";
+" -> 1 ->  |  _  1  1  {1,2}  {}  {1}";
+"    2 ->  |  _  _  _  {2,3}  2   3";
 "    3     |  {} 1  3  3      3   4";
 " -> 4     |  4  4  4  4      4   4";
 "";
@@ -87,13 +89,25 @@ let do_help () =
 
 let toggle_verbosity () =
     if !verbose
-    then (print_endline "verbosity is now off"; verbose := false)
-    else (
-        verbose := true;
-        print_endline "verbosity is now on:";
-        print_endline "  - full labels for automata will be displayed";
-        print_endline "  - counter examples given for false assertions"
-    )
+    then
+        begin
+            verbose := false;
+            if not !quiet
+            then print_endline "verbosity is now off"
+        end
+    else
+        begin
+            verbose := true;
+            if not !quiet
+            then
+                begin
+                    print_endline "verbosity is now on:";
+                    print_endline "  - full labels for automata will be displayed";
+                    print_endline "  - counter examples given for false assertions"
+                end
+        end
+
+let toggle_quiet () = quiet := not !quiet
 
 module IntMap = Map.Make(struct type t=int let compare=compare end)
 
@@ -223,7 +237,7 @@ let sum m n r =
 
 //misc
 %token NEWLINE EOF
-%token ASSERT VERBOSE QUIT HELP AFFECT NOT QUESTION
+%token ASSERT VERBOSE QUIT HELP AFFECT QUIET NOT QUESTION
 %token <int> RANDOM
 %token <int> NUM
 
@@ -258,17 +272,21 @@ command:
     | regexp                                        { print_regexp $1 ; print_newline () }
 
     | REG AFFECT regexp                             { list_REG := IntMap.add $1 $3 !list_REG ;
-                                                      print_regexp $3; print_newline () }
+                                                      if not !quiet
+                                                      then (print_regexp $3; print_newline ()) }
     | DFA AFFECT dfa                                { list_DFA := IntMap.add $1 $3 !list_DFA ;
-                                                      DFA_Regexp.print ~show_labels:!verbose $3 ; print_newline () }
+                                                      if not !quiet
+                                                      then (DFA_Regexp.print ~show_labels:!verbose $3 ; print_newline ()) }
     | NFA AFFECT nfa                                { list_NFA := IntMap.add $1 $3 !list_NFA ;
-                                                      NFA_Regexp.print ~show_labels:!verbose $3 ; print_newline () }
+                                                      if not !quiet
+                                                      then (NFA_Regexp.print ~show_labels:!verbose $3 ; print_newline ()) }
     | NFA AFFECT NEWLINE table                      { list_NFA := IntMap.add $1 $4 !list_NFA }
 
     | assertion                                     { if $1 then print_endline "true" else print_endline "false" }
     | ASSERT assertion                              { assertion $2 }
 
     | VERBOSE                                       { toggle_verbosity () }
+    | QUIET                                         { toggle_quiet () }
 
     | EOF                                           { raise End_of_file }
     | QUIT                                          { exit 0 }
@@ -394,8 +412,8 @@ arrow:
     | ARROW     { true }
 
 transitions:
-    |                                   { [] }
-    | BANG transitions                  { []::$2 }
+    |                                 { [] }
+    | UNDERSCORE transitions          { []::$2 }
     | num transitions                 { [$1]::$2 }
     | LCURL nums RCURL transitions    { $2::$4 }
 

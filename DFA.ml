@@ -274,7 +274,7 @@ module Make(Symbol:OType) (State:OType)
             List.iter
                 (fun a ->
                     let t = try to_string (next d s a)
-                            with Not_found -> "!"
+                            with Not_found -> "_"
                     in
                     print_string_w t (1+width)
                 )

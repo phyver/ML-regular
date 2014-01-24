@@ -1,3 +1,5 @@
+:quiet
+
 :assert [a] == [a]
 :assert NOT [a] == [b]
 :assert NOT 1 >> a
@@ -11,32 +13,29 @@
 
 
 :verbose
-REG1 := (# <RANDOM>)
-REG1
-DFA1 := [ REG1 ]
-NFA1 := { REG1 }
-REG2 := < DFA1 >
-DFA2 := [ NFA1 ]
-NFA2 := { REG2 }
+R1 := (# <RANDOM>)
+D1 := [ R1 ]
+N1 := { R1 }
+R2 := < D1 >
+D2 := [ N1 ]
+N2 := { R2 }
 
-:assert REG1 == DFA1
-:assert REG1 == NFA1
-:assert NFA1 == DFA1
-:assert NFA2 == NFA1
-:assert DFA2 == REG2
-:assert NFA2 == DFA2
-:assert REG2 == REG1
+:assert R1 == D1
+:assert R1 == N1
+:assert N1 == D1
+:assert N2 == N1
+:assert D2 == R2
+:assert N2 == D2
+:assert R2 == R1
 
-REG3 := (# <RANDOM>)
-REG3
-REG4 := < ~ [ < ~ [REG3] / {a,b,c,d,e} > ] / {a,b,c,d,e} >
-:assert REG3 == REG4
+R3 := (# <RANDOM>)
+R4 := < ~ [ < ~ [R3] / {a,b,c,d,e} > ] / {a,b,c,d,e} >
+:assert R3 == R4
 
 
-REG5 := (# <RANDOM10>)
-REG5
-NFA5 := {D REG5}
-NFA6 := {I REG5}
-:assert NFA5 == NFA6
+R5 := (# <RANDOM10>)
+N5 := {D R5}
+N6 := {I R5}
+:assert N5 == N6
 
 :quit
