@@ -257,9 +257,12 @@ command:
     | nfa                                           { NFA_Regexp.print ~show_labels:!verbose $1 ; print_newline () }
     | regexp                                        { print_regexp $1 ; print_newline () }
 
-    | REG AFFECT regexp                             { list_REG := IntMap.add $1 $3 !list_REG }
-    | DFA AFFECT dfa                                { list_DFA := IntMap.add $1 $3 !list_DFA }
-    | NFA AFFECT nfa                                { list_NFA := IntMap.add $1 $3 !list_NFA }
+    | REG AFFECT regexp                             { list_REG := IntMap.add $1 $3 !list_REG ;
+                                                      print_regexp $3; print_newline () }
+    | DFA AFFECT dfa                                { list_DFA := IntMap.add $1 $3 !list_DFA ;
+                                                      DFA_Regexp.print ~show_labels:!verbose $3 ; print_newline () }
+    | NFA AFFECT nfa                                { list_NFA := IntMap.add $1 $3 !list_NFA ;
+                                                      NFA_Regexp.print ~show_labels:!verbose $3 ; print_newline () }
     | NFA AFFECT NEWLINE table                      { list_NFA := IntMap.add $1 $4 !list_NFA }
 
     | assertion                                     { if $1 then print_endline "true" else print_endline "false" }

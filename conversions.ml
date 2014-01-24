@@ -131,9 +131,10 @@ let nfa_from_regexp_derivative (r:regexp) : NFA_Regexp.nfa =
                         aux (r::done_states) ((Atom(r),row)::matrix) accepting todo
     in
 
-    let _, matrix, accepting = aux [] [] [] [r] in
+    let init = get_summands r in
+    let _, matrix, accepting = aux [] [] [] init in
 
-    NFA_Regexp.from_matrix matrix [Atom(r)] accepting
+    NFA_Regexp.from_matrix matrix (List.map (fun s -> Atom(s)) init) accepting
 
 
 (* regexp from nfa *)
