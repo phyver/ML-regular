@@ -75,6 +75,7 @@ rule token = parse
   | ":h"            { HELP }
   | ":quiet"        { QUIET }
   | ":assert"       { ASSERT }
+  | ":derivatives"  { DERIVATIVES }
   | "NOT"           { NOT }
   | "{-"            { comments 0 lexbuf }
 

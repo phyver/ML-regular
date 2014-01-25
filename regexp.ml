@@ -231,28 +231,27 @@ let get_symbols (r:regexp) : symbol list =
 
 
 (* compute the list of all possible iterated derivatives of a regexp *)
-let get_all_derivatives (r:regexp) : regexp list =
+let get_all_derivatives (r:regexp) : (regexp * (symbol list)) list =
     let symbols = get_symbols r in
 
     let rec union l1 l2 = match l2 with
        | [] -> l1
-       | a::l2 -> if List.mem a l1
-                  then union l1 l2
-                  else union (a::l1) l2
+       | (r,w)::l2 -> if List.mem_assoc r l1
+                      then union l1 l2
+                      else union ((r,w)::l1) l2
     in
 
     let rec aux ok todo = match todo with
-        | [] -> ok
-        | r::l ->
-                if List.mem r ok
-                then aux ok l
+        | [] -> List.rev ok
+        | (r,w)::todo ->
+                if List.mem_assoc r ok
+                then aux ok todo
                 else
-                    let ld = List.map (fun a -> derivative r a) symbols in
-                    let ld = List.map simplify ld in
+                    let ld = List.map (fun a -> (simplify (derivative r a), a::w)) symbols in
                     let todo = union todo ld in
-                    aux (r::ok) todo
+                    aux ((r,w)::ok) todo
    in
-   aux [] [simplify r]
+   aux [] [(simplify r, [])]
 
 
 (* check if a regex denotes the empty language *)

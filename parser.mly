@@ -33,6 +33,7 @@ let do_help () =
 "  # EMPTY expr                 test if a an expression has an empty language";
 "  # INFINITE regexp            test if the regexp has an infinite language";
 "";
+"  # :derivatives regexp        show all the derivatives of a regexp";
 "  # :quit                      quit";
 "  # :verbose                   toggle verbosity";
 "  # :quiet                     toggle printing results of affectations R<n>, D<n> and N<n>";
@@ -213,6 +214,21 @@ let sum m n r =
     else if m=n then prod m r
     else Product(prod m r, aux (1+n-m) r One)
 
+let show_derivatives r =
+    print_string "> derivatives of ";
+    print_regexp r;
+    print_newline ();
+    let der = get_all_derivatives r in
+    List.iter
+        (function r,w ->
+            print_string "  ";
+            if w = []
+            then print_string "1"
+            else List.iter print_char w;
+            print_string " --> ";
+            print_regexp r;
+            print_newline ())
+        der
 %}
 
 //typed tokens
@@ -238,6 +254,7 @@ let sum m n r =
 //misc
 %token NEWLINE EOF
 %token ASSERT VERBOSE QUIT HELP AFFECT QUIET NOT QUESTION
+%token DERIVATIVES
 %token <int> RANDOM
 %token <int> NUM
 
@@ -284,6 +301,8 @@ command:
 
     | assertion                                     { if $1 then print_endline "true" else print_endline "false" }
     | ASSERT assertion                              { assertion $2 }
+    | DERIVATIVES raw_regexp                        { show_derivatives $2 }
+
 
     | VERBOSE                                       { toggle_verbosity () }
     | QUIET                                         { toggle_quiet () }
@@ -347,7 +366,8 @@ regexp:
     | LPARHASH raw_regexp RPAR      { $2 }
 
 raw_regexp:
-    | sum_regexp { $1 }
+    | sum_regexp                { $1 }
+    | raw_regexp SLASH STR      { word_derivative $1 $3 }
 
 sum_regexp:
     | product_regexp                { $1 }
@@ -372,7 +392,6 @@ atomic_regexp:
     | LANGL nfa RANGL                       { regexp_from_nfa $2 }
     | LANGL dfa RANGL                       { regexp_from_nfa (NFA_Regexp.from_dfa $2) }
     | LANGL RANDOM RANGL                    { random_regexp $2 }
-    | atomic_regexp SLASH STR               { word_derivative $1 $3 }
 
     | atomic_regexp QUESTION                   { Sum(One, $1) }
     | atomic_regexp LCURL num RCURL            { prod $3 $1 }
