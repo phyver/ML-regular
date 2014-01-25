@@ -32,6 +32,7 @@ rule token = parse
   | '}'             { RCURL }
   | '+'             { PLUS }
   | '*'             { STAR }
+  | "^*"            { STAR }  (* to allow regexp pasted from TeX source *)
   | '0'             { ZERO }
   | '1'             { ONE }
   | lower_symbol    { SYMB(Lexing.lexeme_char lexbuf 0) }
