@@ -41,6 +41,7 @@ rule token = parse
   | ','             { COMMA }
   | str             { STR(get_string (Lexing.lexeme lexbuf)) }
   | '/'             { SLASH }
+  | '\\'            { BACKSLASH }
   | '!'             { BANG }
   | '~'             { TILDE }
   | '<'             { LANGL }

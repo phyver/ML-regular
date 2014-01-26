@@ -45,6 +45,7 @@ let do_help () =
 "";
 "Regexps can also be generated with";
 "    regexp / \"string\"            the word derivative of the regexp wrt to the string";
+"    regexp \ \"string\"            the word antiderivative of the regexp wrt to the string";
 "    TRANS regexp                 the transposition of the regexp";
 "    PREF regexp                  regexp of prefixes";
 "    <nfa>                        the regexp associated to an automaton";
@@ -249,7 +250,7 @@ let show_derivatives r =
 %token STAR TILDE BANG
 
 //binary
-%token PLUS AMPER DOT SLASH
+%token PLUS AMPER DOT SLASH BACKSLASH
 
 //misc
 %token NEWLINE EOF
@@ -368,6 +369,7 @@ regexp:
 raw_regexp:
     | sum_regexp                { $1 }
     | raw_regexp SLASH STR      { word_derivative $1 $3 }
+    | raw_regexp BACKSLASH STR  { word_antiderivative $1 $3 }
 
 sum_regexp:
     | product_regexp                { $1 }

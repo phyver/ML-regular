@@ -209,6 +209,14 @@ let word_derivative (r:regexp) (w:string) : regexp =
     in
     aux r (explode w)
 
+let word_antiderivative (r:regexp) (w:string) : regexp =
+    let rec aux r l = match l with
+        | [] -> transpose r
+        | a::l -> aux (derivative r a) l
+    in
+    let tr = transpose r in
+    let l = List.rev (explode w) in
+    aux tr l
 
 (* match a string against a regexp using iterated derivatives *)
 let match_regexp (w:string) (r:regexp) : bool =
