@@ -1,16 +1,19 @@
 {- automaton checking if a binary number is divisible by 3 -}
 
+:quiet
+
 N1 :=
-           |   _ `0 `1
----------------------------
--> 1 ->    |   _   1  2
-   2       |   _   3  1
-   3       |   _   2  3
+           |   _  a  b
+------------------------
+-> 1 ->    |   _  1  2
+   2       |   _  3  1
+   3       |   _  2  3
 
 R1 := < N1 >
 
-:assert "11" << R1
-:assert "110" << R1
-:assert "1001" << R1
-:assert NOT "1010" << R1
+:assert "bb" IN R1
+:assert "bba" IN R1
+:assert "baab" IN R1
+:assert NOT "baba" IN R1
 
+:quiet

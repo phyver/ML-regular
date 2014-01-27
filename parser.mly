@@ -17,15 +17,16 @@ let do_help () =
 "  # regexp                     print the regexp";
 "  # dfa                        print the table of the automaton";
 "  # nfa                        print the table of the automaton";
+"  # word                       print the (expanded) word";
 "";
 "  # REG<n> := regexp           define a regexp";
 "  # DFA<n> := dfa              define a deterministic automaton";
 "  # NFA<n> := nfa              define a non-deterministic automaton";
 "  # NFA<n> := \\n table         define a non-deterministic automaton from a table";
 "";
-"  # \"string\" << regexp         matches the string against the regexp";
-"  # \"string\" << dfa            matches the string against the automaton";
-"  # \"string\" << nfa            matches the string against the automaton";
+"  # \"word\" IN regexp           matches the string against the regexp";
+"  # \"word\" IN dfa              matches the string against the automaton";
+"  # \"word\" IN nfa              matches the string against the automaton";
 "";
 "  # expr == expr               test if the two expressions are equal";
 "  # expr >> expr               test if the first expression has a larger language than the second";
@@ -40,12 +41,15 @@ let do_help () =
 "  # :help                      help message";
 "  # ?                          help message";
 "";
+"words are obtained from symbols (lowercase letters) as well as repetitions/parenthesis,";
+"as in # \"(ab){5}\" IN a(ba)*b";
+"";
 "Basic regexp are obtained from 0, 1, lowercase letters, +, *, concatenation,";
 "complementation (~), user defined regexp (REG<n>) and random regexps (<RANDOM>)";
 "";
 "Regexps can also be generated with";
-"    regexp / \"string\"            the word derivative of the regexp wrt to the string";
-"    regexp \ \"string\"            the word antiderivative of the regexp wrt to the string";
+"    regexp / \"word\"              the word derivative of the regexp wrt to the string";
+"    regexp \\ \"word\"              the word antiderivative of the regexp wrt to the string";
 "    TRANS regexp                 the transposition of the regexp";
 "    PREF regexp                  regexp of prefixes";
 "    <nfa>                        the regexp associated to an automaton";
@@ -230,11 +234,18 @@ let show_derivatives r =
             print_regexp r;
             print_newline ())
         der
+
+let n_concat l n =
+    let rec aux n acc =
+        if n < 1
+        then acc
+        else aux (n-1) (l@acc)
+    in
+    aux n []
 %}
 
 //typed tokens
 %token <char> SYMB
-%token <string> STR
 %token <int> DFA
 %token <int> NFA
 %token <int> REG
@@ -258,9 +269,10 @@ let show_derivatives r =
 %token DERIVATIVES
 %token <int> RANDOM
 %token <int> NUM
+%token QUOTE
 
 //relations
-%token LT GT DOUBLE_EQUAL
+%token LT GT DOUBLE_EQUAL IN
 
 //parsing tables
 %token PIPE ARROW UNDERSCORE COMMA LINE
@@ -288,6 +300,7 @@ command:
     | dfa                                           { DFA_Regexp.print ~show_labels:!verbose $1 ; print_newline () }
     | nfa                                           { NFA_Regexp.print ~show_labels:!verbose $1 ; print_newline () }
     | regexp                                        { print_regexp $1 ; print_newline () }
+    | word                                          { print_endline ("\"" ^ $1 ^ "\"") }
 
     | REG AFFECT regexp                             { list_REG := IntMap.add $1 $3 !list_REG ;
                                                       if not !quiet
@@ -314,9 +327,9 @@ command:
 
 assertion:
     | NOT assertion                         { not $2 }
-    | STR LT regexp                         { match_regexp $1 $3 }
-    | STR LT dfa                            { DFA_Regexp.accepts $3 (explode $1) }
-    | STR LT nfa                            { NFA_Regexp.accepts $3 (explode $1) }
+    | word IN regexp                        { match_regexp $1 $3 }
+    | word IN dfa                           { DFA_Regexp.accepts $3 (explode $1) }
+    | word IN nfa                           { NFA_Regexp.accepts $3 (explode $1) }
     | INFINITE regexp                       { is_infinite $2 }
 
     | EMPTY nfa                             { nfa_empty $2 }
@@ -368,8 +381,8 @@ regexp:
 
 raw_regexp:
     | sum_regexp                { $1 }
-    | raw_regexp SLASH STR      { word_derivative $1 $3 }
-    | raw_regexp BACKSLASH STR  { word_antiderivative $1 $3 }
+    | raw_regexp SLASH word     { word_derivative $1 $3 }
+    | raw_regexp BACKSLASH word { word_antiderivative $1 $3 }
 
 sum_regexp:
     | product_regexp                { $1 }
@@ -443,3 +456,14 @@ nums:
     | num                             { [$1] }
     | num COMMA nums                { $1::$3 }
 
+word:
+    | QUOTE raw_word QUOTE          { implode $2 }
+
+raw_word:
+    |                   { [] }
+    | atomic_word raw_word     { $1 @ $2 }
+
+atomic_word:
+    | SYMB                                      { [$1] }
+    | LPAR raw_word RPAR                        { $2 }
+    | atomic_word LCURL num RCURL               { n_concat $1 $3 }

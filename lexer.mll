@@ -1,7 +1,6 @@
 {
 open Parser
 
-let get_string s = String.sub s 1 ((String.length s) - 2)
 let get_symbol s = String.sub s 1 ((String.length s) - 1)
 let get_index s = int_of_string (String.sub s 1 ((String.length s) - 1))
 let get_random s =
@@ -9,10 +8,7 @@ let get_random s =
     try int_of_string s
     with Failure _ -> 5
 }
-let lower_symbol = [ 'a'-'z' ]
-let character =  [ 'a'-'z' 'A'-'Z' '0'-'9' '.' ',' ]
-let symbol = "`" character
-let str = '"' character* '"'
+let character =  [ 'a'-'z' ]
 let reg = "R" [ '0'-'9' ]+
 let dfa = "D" [ '0'-'9' ]+
 let nfa = "N" [ '0'-'9' ]+
@@ -35,11 +31,9 @@ rule token = parse
   | "^*"            { STAR }  (* to allow regexp pasted from TeX source *)
   | '0'             { ZERO }
   | '1'             { ONE }
-  | lower_symbol    { SYMB(Lexing.lexeme_char lexbuf 0) }
-  | symbol          { SYMB((Lexing.lexeme lexbuf).[1]) }
+  | character       { SYMB(Lexing.lexeme_char lexbuf 0) }
 
   | ','             { COMMA }
-  | str             { STR(get_string (Lexing.lexeme lexbuf)) }
   | '/'             { SLASH }
   | '\\'            { BACKSLASH }
   | '!'             { BANG }
@@ -66,6 +60,8 @@ rule token = parse
   | line            { LINE }
   | '?'             { QUESTION }
   | num             { NUM(int_of_string (Lexing.lexeme lexbuf)) }
+  | "IN"            { IN }
+  | '"'             { QUOTE }
 
   | [' ' '\t']      { token lexbuf }
   | '\n'            { Lexing.new_line lexbuf; NEWLINE }
