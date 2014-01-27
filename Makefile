@@ -58,6 +58,7 @@ clean:
 very_clean:
 	rm -f *.cm[aoix] *.o
 	rm -f lexer.ml parser.ml parser.mli
+	rm -f ML-regular.tar.gz
 	rm -f gmon.out
 	rm -f prof mlr
 
