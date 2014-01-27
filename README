@@ -1,0 +1,37 @@
+Installation
+============
+
+Il faut avoir une installation fonctionnelle de OCaml. Si vous êtes sur une
+machine linux Ubuntu ou Debian, il suffit de faire
+  $ sudo apt-get install ocaml-nox
+
+Je vous conseille aussi d'installer "ledit" :
+  $ sudo apt-get install ledit rlwrap
+
+Pour compiler :
+  $ touch .depend && make depend && make opt
+
+Pour lancer le programme :
+  $ ./mlr
+ou mieux, si vous avez installé "ledit" :
+  $ ledit ./mlr
+ou, si vous voulez conserver l'historique de vos commandes entre plusieurs
+lancements du programme :
+  $ ledit -x -h ~/.ml_history ./mlr
+
+
+Utilisation
+===========
+
+Référez vous à l'aide en ligne :
+  # :help
+ou
+  # ?
+
+Vous pouvez lire des commandes dans des fichiers avant de rentrer dans la
+boucle d'intéraction en donnant les fichiers sur la ligne de commande :
+  # ./mlr test.mlr
+ou
+  # ledit ./mlr test1.mlr test2.mlr
+
+

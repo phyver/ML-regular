@@ -1,3 +1,4 @@
+INSTALLDIR=$(HOME)/.local/bin
 
 OCAMLYACC=ocamlyacc
 OCAMLLEX=ocamllex
@@ -46,8 +47,8 @@ lexer.ml:
 	$(OCAMLLEX) $(OCAMLLEXFLAGS) lexer.mll
 
 install: opt
-	install -d $(HOME)/.local/bin
-	install ./mlr $(HOME)/.local/bin
+	install -d $(INSTALLDIR)
+	install ./mlr $(INSTALLDIR)
 
 clean:
 	rm -f *.cm[aoix] *.o
