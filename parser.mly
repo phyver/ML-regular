@@ -19,10 +19,10 @@ let do_help () =
 "  # nfa                        print the table of the automaton";
 "  # word                       print the (expanded) word";
 "";
-"  # REG<n> := regexp           define a regexp";
-"  # DFA<n> := dfa              define a deterministic automaton";
-"  # NFA<n> := nfa              define a non-deterministic automaton";
-"  # NFA<n> := \\n table         define a non-deterministic automaton from a table";
+"  # R<n> := regexp             define a regexp";
+"  # D<n> := dfa                define a deterministic automaton";
+"  # N<n> := nfa                define a non-deterministic automaton";
+"  # N<n> := \\n table           define a non-deterministic automaton from a table";
 "";
 "  # \"word\" IN regexp           matches the string against the regexp";
 "  # \"word\" IN dfa              matches the string against the automaton";
@@ -45,16 +45,16 @@ let do_help () =
 "as in # \"(ab){5}\" IN a(ba)*b";
 "";
 "Basic regexp are obtained from 0, 1, lowercase letters, +, *, concatenation,";
-"complementation (~), user defined regexp (REG<n>) and random regexps (<RANDOM>)";
+"complementation (~), user defined regexp (R<n>) and random regexps (<RANDOM>)";
 "";
 "Regexps can also be generated with";
 "    regexp / \"word\"              the word derivative of the regexp wrt to the string";
 "    regexp \\ \"word\"              the word antiderivative of the regexp wrt to the string";
-"    TRANS regexp                 the transposition of the regexp";
-"    PREF regexp                  regexp of prefixes";
+"    TRANSPOSE regexp             the transposition of the regexp";
+"    PREFIX regexp                regexp of prefixes";
 "    <nfa>                        the regexp associated to an automaton";
 "    <dfa>                        the regexp associated to an automaton";
-"    regexp ?                     the regexp zero or one time";
+"    regexp?                      the regexp zero or one time";
 "    regexp{<n>}                  the regexp <n> times";
 "    regexp{<m>,<n>}              the regexp at least <m> times, at most <n> times";
 "    regexp{<n>,}                 the regexp at least <n> times";
@@ -64,7 +64,7 @@ let do_help () =
 "dfa are obtained from:";
 "     [regexp]                  automaton of the derivatives of the regexp";
 "     [nfa]                     determinisation of the automaton";
-"     DFA<n>                    user defined automaton";
+"     D<n>                      user defined automaton";
 "     !dfa                      minimization of the automaton";
 "     dfa & dfa                 intersection of the two automata";
 "     dfa + dfa                 union of the two automata";
@@ -76,7 +76,7 @@ let do_help () =
 "     {D regexp}                automaton obtained from the derivatives of the regexp";
 "     {regexp}                  automaton obtained from the derivatives of the regexp";
 "     {dfa}                     the same automaton, seen as non-deterministic";
-"     NFA<n>                    user defined automaton";
+"     N<n>                      user defined automaton";
 "     nfa + nfa                 union of the two automata";
 "     nfa*                      star of the automaton";
 "     nfa . nfa                 concatenation of the automata";
@@ -123,13 +123,13 @@ let list_REG = ref IntMap.empty
 
 let get_REG n =
     try IntMap.find n !list_REG
-    with Not_found -> raise(Invalid_argument("no such regexp REG"^(string_of_int n)))
+    with Not_found -> raise(Invalid_argument("no such regexp R"^(string_of_int n)))
 let get_DFA n =
     try IntMap.find n !list_DFA
-    with Not_found -> raise(Invalid_argument("no such automaton DFA"^(string_of_int n)))
+    with Not_found -> raise(Invalid_argument("no such automaton D"^(string_of_int n)))
 let get_NFA n =
     try IntMap.find n !list_NFA
-    with Not_found -> raise(Invalid_argument("no such automaton NFA"^(string_of_int n)))
+    with Not_found -> raise(Invalid_argument("no such automaton N"^(string_of_int n)))
 
 (* transform a parsed table into a non-deterministic automaton *)
 let make_nfa (symbols:char option list)

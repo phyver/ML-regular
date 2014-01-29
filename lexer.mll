@@ -46,8 +46,8 @@ rule token = parse
   | '&'             { AMPER }
   | '|'             { PIPE }
   | '.'             { DOT }
-  | "TRANS"         { TRANS }
-  | "PREF"          { PREF }
+  | "TRANSPOSE"     { TRANS }
+  | "PREFIX"        { PREF }
   | "EMPTY"         { EMPTY }
   | "INFINITE"      { INFINITE }
   | random          { RANDOM(get_random (Lexing.lexeme lexbuf)) }
@@ -78,6 +78,7 @@ rule token = parse
 
 and comments level = parse
   | "-}"            { if level = 0 then token lexbuf else comments (level-1) lexbuf }
+  | "{-"            { comments (level+1) lexbuf }
   | '\n'            { Lexing.new_line lexbuf; comments level lexbuf }
   | _               { comments level lexbuf }
   | eof             { EOF }

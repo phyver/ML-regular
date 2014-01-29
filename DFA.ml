@@ -608,50 +608,53 @@ module Make(Symbol:OType) (State:OType)
         }
 
     (* intersection of two automata *)
-    (* FIXME: I should only construct the accessible part *)
-    (* FIXME: doesn't work if the automata aren't total *)
     let intersection (d1:dfa) (d2:dfa) : dfa =
-        let states1 = get_states d1 in
-        let states2 = get_states d2 in
         let symbols = uniq (List.merge
                                 Symbol.compare
                                 (get_symbols d2)
                                 (get_symbols d1))
         in
-
-        let matrix : lts =
-            List.fold_left (fun matrix1 s1 ->
-            List.fold_left (fun matrix2 s2 ->
-            List.fold_left (fun matrix3 a ->
-                try
-                    let sa1 = next d1 s1 a in
-                    let sa2 = next d2 s2 a in
-                        (LTS.add (Pair(s1,s2)) a (Pair(sa1,sa2)) matrix3)
-                with Not_found -> matrix3
-            ) matrix2 symbols
-            ) matrix1 states2
-            ) LTS.empty states1
+        let rec dfs matacc seen todo = match todo with
+            | [] -> matacc
+            | s12::todo when List.mem s12 seen -> dfs matacc seen todo
+            | s12::todo ->
+                    let s1, s2 = s12 in
+                    let matrix, todo =
+                        List.fold_left
+                            (fun matrixtodo a ->
+                                    try
+                                        let sa1 = next d1 s1 a in
+                                        let sa2 = next d2 s2 a in
+                                        ((LTS.add (Pair(s1,s2)) a (Pair(sa1,sa2)) (fst matrixtodo)),
+                                         (sa1,sa2)::(snd matrixtodo))
+                                    with Not_found -> matrixtodo
+                            )
+                            (fst matacc,todo)
+                            symbols
+                    in
+                    let seen = ((s1,s2)::seen) in
+                    let acc = snd matacc in
+                    let acc = if (is_accepting d1 s1) && (is_accepting d2 s2)
+                              then SetStates.add (Pair(s1,s2)) acc
+                              else acc
+                    in
+                    dfs (matrix,acc) seen todo
         in
-
-        (* cartesian product of the accepting states *)
-        let accepting =
-            let accepting1 = SetStates.elements (d1.accepting) in
-            let accepting2 = SetStates.elements (d2.accepting) in
-                List.fold_left (fun acc1 s1 ->
-                List.fold_left (fun acc2 s2 ->
-                    SetStates.add (Pair(s1,s2)) acc2
-                ) acc1 accepting2
-                ) SetStates.empty accepting1
-        in
-
+        let matrix,accepting = dfs (LTS.empty,SetStates.empty) [] [d1.init, d2.init] in
+        let init = Pair(d1.init, d2.init) in
         {
-            init = Pair(get_init d1, get_init d2)               ;
-            matrix = matrix                                     ;
-            accepting = accepting                               ;
-            symbols = SetSymbols.union d1.symbols d2.symbols    ;
+            init = init ;
+            matrix = matrix ;
+            accepting = accepting ;
+            symbols = List.fold_left (fun s a -> SetSymbols.add a s) SetSymbols.empty symbols ;
         }
 
+
     (* FIXME: I should only construct the accessible part *)
+    (* FIXME: doesn't work if the automata aren't total...
+     * I should use two new dummy states D1 D2 and have transitions from
+     * (s1,s2) to (ns1,D2) when the right transition isn't defined, and
+     * symmetrically. *)
     let union (d1:dfa) (d2:dfa) : dfa =
         let states1 = get_states d1 in
         let states2 = get_states d2 in
@@ -728,9 +731,11 @@ module Make(Symbol:OType) (State:OType)
 
     let subset ?(counterexample=false) (d1:dfa) (d2:dfa) : bool =
 
-        (* FIXME: is it better to minimize or not??? *)
-        let d1 = make_total ~symbols:(get_symbols d2) (minimize d1)  in
-        let cd2 = minimize (complement d2 ~symbols:(get_symbols d1)) in
+        (* FIXME: is it better to minimize or not???
+         * Probably not as soon as I only construct the accessible part of the
+         * intersection... *)
+        let d1 = d1 in
+        let cd2 = complement d2 ~symbols:(get_symbols d1) in
         let d = intersection d1 cd2 in
         try
             let u = find_accepting d in
