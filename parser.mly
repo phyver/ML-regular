@@ -5,12 +5,13 @@
 /***************************************************************/
 
 %{
-open Misc
+open Common
 open Regexp
 open Conversions
 
 let verbose = ref false
 let quiet = ref false
+let alphabet = ref []
 
 let do_help () =
     List.iter print_endline
@@ -42,8 +43,10 @@ let do_help () =
 "";
 "  # :derivatives regexp        show all the derivatives of a regexp";
 "  # :quit                      quit";
-"  # :verbose                   toggle verbosity";
-"  # :quiet                     toggle printing results of affectations R<n>, D<n> and N<n>";
+"  # :set verbose 0/1           set verbosity";
+"  # :set quiet 0/1             toggle printing results of affectations R<n>, D<n> and N<n>";
+"  # :set alphabet {a,b,...}    set the default alphabet";
+"";
 "  # :help                      this message";
 "  # :help word                 help about words (strings)";
 "  # :help regexp               help about regexps";
@@ -146,8 +149,8 @@ let do_help_nfa () =
 "";
     ]
 
-let toggle_verbosity () =
-    if !verbose
+let toggle_verbosity b =
+    if not b
     then
         begin
             verbose := false;
@@ -165,8 +168,6 @@ let toggle_verbosity () =
                     print_endline "  - counter examples given for false assertions"
                 end
         end
-
-let toggle_quiet () = quiet := not !quiet
 
 module IntMap = Map.Make(struct type t=int let compare=compare end)
 
@@ -295,6 +296,14 @@ let n_concat l n =
         else aux (n-1) (l@acc)
     in
     aux n []
+
+let print_set l = match l with
+    | [] -> print_string "{}"
+    | x::l ->
+            print_string "{";
+            print_char x;
+            List.iter (fun x -> print_char ','; print_char x) l;
+            print_string "}"
 %}
 
 //typed tokens
@@ -318,7 +327,8 @@ let n_concat l n =
 
 //misc
 %token NEWLINE EOF
-%token ASSERT VERBOSE QUIT HELP HELP_WORD HELP_REGEXP HELP_DFA HELP_NFA AFFECT QUIET NOT QUESTION
+%token ASSERT VERBOSE QUIT HELP HELP_WORD HELP_REGEXP HELP_DFA HELP_NFA AFFECT
+%token QUIET NOT QUESTION SET ALPHABET
 %token DERIVATIVES
 %token <int> RANDOM
 %token <int> NUM
@@ -375,8 +385,16 @@ command:
     | DERIVATIVES raw_regexp                        { show_derivatives $2 }
 
 
-    | VERBOSE                                       { toggle_verbosity () }
-    | QUIET                                         { toggle_quiet () }
+    | SET VERBOSE ZERO                              { toggle_verbosity false }
+    | SET VERBOSE ONE                               { toggle_verbosity true }
+    | SET VERBOSE                                   { toggle_verbosity (not !verbose) }
+    | SET QUIET ZERO                                { quiet := false }
+    | SET QUIET ONE                                 { quiet := true }
+    | SET QUIET                                     { quiet := (not !quiet) }
+    | SET ALPHABET alphabet                         { alphabet := uniq (List.sort compare $3) }
+    | SET ALPHABET                                  { print_string "current alphabet: ";
+                                                      print_set !alphabet ;
+                                                      print_newline ()}
 
     | EOF                                           { raise End_of_file }
     | QUIT                                          { exit 0 }
@@ -399,12 +417,13 @@ assertion:
 dfa_expr:
     | dfa       { $1 }
     | nfa       { NFA_Regexp.to_dfa $1 }
-    | regexp    { dfa_from_regexp $1 }
+    | regexp    { dfa_from_regexp ~alphabet:!alphabet $1 }
 
 dfa:
     | LPAR dfa RPAR             { $2 }
-    | LBR regexp RBR            { dfa_from_regexp $2 }
-    | TILDE dfa alphabet        { DFA_Regexp.complement $2 ~symbols:$3}
+    | LBR regexp RBR            { dfa_from_regexp ~alphabet:!alphabet $2 }
+    | TILDE dfa                 { DFA_Regexp.complement $2 ~alphabet:!alphabet }
+    | TILDE dfa SLASH alphabet  { DFA_Regexp.complement $2 ~alphabet:$4 }
     | BANG dfa                  { DFA_Regexp.minimize $2 }
     | dfa PIPE dfa              { DFA_Regexp.union $1 $3 }
     | dfa AMPER dfa             { DFA_Regexp.intersection $1 $3 }
@@ -412,8 +431,7 @@ dfa:
     | DFA                       { get_DFA $1 }
 
 alphabet:
-    |                               { [] }
-    | SLASH LCURL elements RCURL    { $3 }
+    | LCURL elements RCURL    { $2 }
 
 elements:
     |                       { [] }
@@ -422,8 +440,8 @@ elements:
 
 nfa:
     | LPAR nfa RPAR                 { $2 }
-    | LCURL regexp RCURL            { nfa_from_regexp_derivative $2 }
-    | LCURLD regexp RCURL           { nfa_from_regexp_derivative $2 }
+    | LCURL regexp RCURL            { nfa_from_regexp_derivative ~alphabet:!alphabet $2 }
+    | LCURLD regexp RCURL           { nfa_from_regexp_derivative ~alphabet:!alphabet $2 }
     | LCURLI regexp RCURL           { nfa_from_regexp_inductive $2 }
     | nfa PIPE nfa                  { NFA_Regexp.union $1 $3 }
     | nfa STAR                      { NFA_Regexp.star $1 }

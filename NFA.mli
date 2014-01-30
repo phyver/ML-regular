@@ -4,6 +4,9 @@
 (*  GNU General Public License, described in file COPYING.     *)
 (***************************************************************)
 
+open Common
+
+
 module type NFAType =
   sig
     type symbol
@@ -41,9 +44,9 @@ module type NFAType =
     val to_dfa : nfa -> dfa
   end
 
-module Make (Symbol:Misc.OType) (State:Misc.OType)
+module Make (Symbol:OType) (State:OType)
   : NFAType
   with type symbol = Symbol.t
    and type atomic_state = State.t
-   and type state = Misc.GeneralizedState(State).t
+   and type state = GeneralizedState(State).t
    and type dfa = DFA.Make(Symbol)(State).dfa

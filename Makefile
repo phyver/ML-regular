@@ -11,8 +11,8 @@ INCLUDES=
 OCAMLFLAGS=$(INCLUDES)
 OCAMLDEPFLAGS=$(INCLUDES)
 
-BYTEFILES=misc.cmo regexp.cmo DFA.cmo NFA.cmo lexer.cmo conversions.cmo parser.cmo
-OPTFILES=misc.cmx regexp.cmx DFA.cmx NFA.cmx lexer.cmx conversions.cmx parser.cmx
+BYTEFILES=common.cmo regexp.cmo DFA.cmo NFA.cmo lexer.cmo conversions.cmo parser.cmo
+OPTFILES=common.cmx regexp.cmx DFA.cmx NFA.cmx lexer.cmx conversions.cmx parser.cmx
 
 # Common rules
 .SUFFIXES: .ml .mli .cmo .cmi .cmx

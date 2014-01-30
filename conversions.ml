@@ -4,13 +4,14 @@
 (*  GNU General Public License, described in file COPYING.     *)
 (***************************************************************)
 
+
 (***
  *** conversions between automata and regular expressions
  **)
 
 
 open Regexp
-open Misc
+open Common
 
 (* we will need an automaton with regexps as states and characters as symbols
  * those are the corresponding OTypes *)
@@ -31,10 +32,11 @@ module DFA_Regexp = DFA.Make(OChar)(ORegexp)
 module NFA_Regexp = NFA.Make(OChar)(ORegexp)
 
 (* transform a regexp into an automaton by computing its derivatives *)
-let dfa_from_regexp (r:regexp) : DFA_Regexp.dfa =
+let dfa_from_regexp ?(alphabet=[]) (r:regexp) : DFA_Regexp.dfa =
 
     (* the symbols appearing in the regexp *)
-    let actual_symbols = Regexp.get_symbols r in
+    let alphabet = List.sort OChar.compare alphabet in
+    let actual_symbols = merge_union alphabet (Regexp.get_symbols r) in
 
     (* we compute all the derivatives and put them in an automaton
      *   - "done_states" contains all the states (regexps) whose derivative we
@@ -95,10 +97,11 @@ let rec nfa_from_regexp_inductive r = match r with
             NFA_Regexp.star d
 
 (* transform a regexp into an NFA by computing its derivatives *)
-let nfa_from_regexp_derivative (r:regexp) : NFA_Regexp.nfa =
+let nfa_from_regexp_derivative ?(alphabet=[]) (r:regexp) : NFA_Regexp.nfa =
 
     (* the symbols appearing in the regexp *)
-    let actual_symbols = Regexp.get_symbols r in
+    let alphabet = List.sort OChar.compare alphabet in
+    let actual_symbols = merge_union alphabet (Regexp.get_symbols r) in
 
     (* we compute all the derivatives and put them in an automaton
      *   - "done_states" contains all the states (regexps) whose derivative we

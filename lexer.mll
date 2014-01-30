@@ -75,13 +75,15 @@ rule token = parse
   | '\n'            { Lexing.new_line lexbuf; NEWLINE }
   | eof             { EOF }
   | ":quit"         { QUIT }
-  | ":verbose"      { VERBOSE }
+  | ":set"          { SET }
+  | "verbose"       { VERBOSE }
+  | "quiet"         { QUIET }
+  | "alphabet"      { ALPHABET }
   | help spaces "word"     { HELP_WORD }
   | help spaces "regexp"   { HELP_REGEXP }
   | help spaces "dfa"      { HELP_DFA }
   | help spaces "nfa"      { HELP_NFA }
   | help            { HELP }
-  | ":quiet"        { QUIET }
   | ":assert"       { ASSERT }
   | ":derivatives"  { DERIVATIVES }
   | "NOT"           { NOT }

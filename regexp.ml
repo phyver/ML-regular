@@ -4,7 +4,8 @@
 (*  GNU General Public License, described in file COPYING.     *)
 (***************************************************************)
 
-open Misc
+open Common
+
 
 (***
  *** regular expressions and their derivatives

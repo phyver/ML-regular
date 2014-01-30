@@ -32,13 +32,13 @@ Par exemple, la ligne suivante affichera "true"
 Par exemple, la ligne suivant doit afficher "true" -}
 (1 + ab + a(ba)*bab) == ab*
 
-{- si on utilise la commande ":verbose", le programme nous affiche un
+{- si on utilise la commande ":set verbose 1", le programme nous affiche un
 contre exemple lorsqu'on demande de vérifier une égalité fausse.
 Par exemple, la première ligne affiche simplement "false", mais après le
-":verbose", elle nous donne un contre-exemple : le mot vide.
+":set verbose", elle nous donne un contre-exemple : le mot vide.
 -}
 (1 + ab + a(ba)*ba) == ab*a
-:verbose
+:set verbose 1
 (1 + ab + a(ba)*ba) == ab*a
 
 

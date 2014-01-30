@@ -1,4 +1,4 @@
-:quiet
+:set quiet 1
 
 :assert [a] == [a]
 :assert NOT [a] == [b]
@@ -11,8 +11,11 @@
 :assert (aaa)*aa == aa(aaa)*
 :assert (a+b)* == (a*b)*a*
 
+:set alphabet {a,b}
+:assert (ab)* == 1 + ~(~0 (aa+bb) ~0) & a ~0 & ~0 b
 
-:verbose
+
+:set verbose 1
 R1 := (# <RANDOM>)
 D1 := [ R1 ]
 N1 := { R1 }

@@ -4,7 +4,7 @@
 (*  GNU General Public License, described in file COPYING.     *)
 (***************************************************************)
 
-open Misc
+open Common
 
 
 (****************************************************************************
@@ -130,12 +130,12 @@ module type DFAType = sig
         val accepts : dfa -> symbol list -> bool
 
         val reachable : dfa -> dfa
-        val make_total : ?symbols:symbol list -> dfa -> dfa
+        val make_total : ?alphabet:symbol list -> dfa -> dfa
         val collapse : dfa -> dfa
         (* TODO co_reachable: dfa -> dfa *)
         val minimize : dfa -> dfa
 
-        val complement : ?symbols:symbol list -> dfa -> dfa
+        val complement : ?alphabet:symbol list -> dfa -> dfa
         val union : dfa -> dfa -> dfa
         val intersection : dfa -> dfa -> dfa
 
@@ -370,7 +370,7 @@ module Make(Symbol:OType) (State:OType)
 
 
     (* make a dfa total *)
-    let make_total ?(symbols=[]) (d:dfa) : dfa =
+    let make_total ?(alphabet=[]) (d:dfa) : dfa =
 
         (* states and symbols of the automaton *)
         (*
@@ -379,7 +379,7 @@ module Make(Symbol:OType) (State:OType)
         *)
 
         let new_symbols =
-            List.fold_left (fun acc a -> SetSymbols.add a acc) d.symbols symbols
+            List.fold_left (fun acc a -> SetSymbols.add a acc) d.symbols alphabet
         in
         let d = {
             init = d.init               ;
@@ -390,6 +390,7 @@ module Make(Symbol:OType) (State:OType)
         in
 
         let states = get_states d in
+        let symbols = get_symbols d in
 
         (* we rename all the existing states *)
         let matrix = LTS.map (fun s -> In(0,s)) d.matrix in
@@ -598,8 +599,8 @@ module Make(Symbol:OType) (State:OType)
 
     (* complement of an automaton
      * we just change the accepting states *)
-    let complement ?(symbols=[]) (d:dfa) : dfa =
-        let d = make_total ~symbols:symbols d in
+    let complement ?(alphabet=[]) (d:dfa) : dfa =
+        let d = make_total ~alphabet:alphabet d in
         let states =
             List.fold_left
                 (fun acc s -> SetStates.add s acc)
@@ -741,7 +742,7 @@ module Make(Symbol:OType) (State:OType)
          * Probably not as soon as I only construct the reachable part of the
          * intersection... *)
         let d1 = d1 in
-        let cd2 = complement d2 ~symbols:(get_symbols d1) in
+        let cd2 = complement d2 ~alphabet:(get_symbols d1) in
         let d = intersection d1 cd2 in
         try
             let u = find_accepting d in

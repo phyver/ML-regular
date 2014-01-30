@@ -4,6 +4,8 @@
 (*  GNU General Public License, described in file COPYING.     *)
 (***************************************************************)
 
+open Common
+
 module type DFAType = sig
     type symbol
     type atomic_state
@@ -25,11 +27,11 @@ module type DFAType = sig
     val accepts : dfa -> symbol list -> bool
 
     val reachable : dfa -> dfa
-    val make_total : ?symbols:symbol list -> dfa -> dfa
+    val make_total : ?alphabet:symbol list -> dfa -> dfa
     val collapse: dfa -> dfa
     val minimize : dfa -> dfa
 
-    val complement : ?symbols:symbol list -> dfa -> dfa
+    val complement : ?alphabet:symbol list -> dfa -> dfa
     val union : dfa -> dfa -> dfa
     val intersection : dfa -> dfa -> dfa
 
@@ -39,9 +41,9 @@ module type DFAType = sig
     val equal : ?counterexample:bool -> dfa -> dfa -> bool
   end
 
-module Make (Symbol:Misc.OType) (State:Misc.OType)
+module Make (Symbol:OType) (State:OType)
     : DFAType
     with type symbol = Symbol.t
      and type atomic_state = State.t
-     and type state = Misc.GeneralizedState(State).t
+     and type state = GeneralizedState(State).t
 

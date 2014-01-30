@@ -19,12 +19,22 @@ let rec uniq l =
     aux l []
 
 (* compute the intersection of 2 sorted lists *)
-let merge_inter l1 l2 =
+let merge_inter (l1:'a list) (l2:'a list) : 'a list =
+    let rec aux l1 l2 acc = match l1,l2 with
+        | [],l | l,[] -> List.rev acc
+        | a1::_, a2::l2 when a1>a2 -> aux l1 l2 acc
+        | a1::l1, a2::_ when a1<a2 -> aux l1 l2 acc
+        | a1::l1, a2::l2 (* when a1=a2 *) -> aux l1 l2 (a1::acc)
+    in
+    aux l1 l2 []
+
+(* compute the union of 2 sorted lists *)
+let merge_union (l1:'a list) (l2:'a list) : 'a list =
     let rec aux l1 l2 acc = match l1,l2 with
         | [],l | l,[] -> List.rev_append acc l
         | a1::_, a2::l2 when a1>a2 -> aux l1 l2 (a1::acc)
         | a1::l1, a2::_ when a1<a2 -> aux l1 l2 (a2::acc)
-        | a1::l1, a2::l2 (* when a1=a2 *) -> aux l1 l2 acc
+        | a1::l1, a2::l2 (* when a1=a2 *) -> aux l1 l2 (a1::acc)
     in
     aux l1 l2 []
 

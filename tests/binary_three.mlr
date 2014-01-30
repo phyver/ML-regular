@@ -1,6 +1,6 @@
 {- automaton checking if a binary number is divisible by 3 -}
 
-:quiet
+:set quiet 1
 
 N1 :=
            |   _  a  b
@@ -16,4 +16,4 @@ R1 := < N1 >
 :assert "baab" IN R1
 :assert NOT "baba" IN R1
 
-:quiet
+:set quiet 0
