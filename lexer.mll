@@ -1,3 +1,9 @@
+(***************************************************************)
+(*  Copyright 2014 Pierre Hyvernat. All rights reserved.       *)
+(*  This file is distributed under the terms of the            *)
+(*  GNU General Public License, described in file COPYING.     *)
+(***************************************************************)
+
 {
 open Parser
 
@@ -15,6 +21,8 @@ let nfa = "N" [ '0'-'9' ]+
 let random = "RANDOM" [ '0'-'9' ]*
 let line = "-----" "-"*
 let num = [ '0'-'9' ]+
+let help = ":help" | ":h"
+let spaces = [ ' ' '\t' ]+
 
 rule token = parse
   | '('             { LPAR }
@@ -68,8 +76,11 @@ rule token = parse
   | eof             { EOF }
   | ":quit"         { QUIT }
   | ":verbose"      { VERBOSE }
-  | ":help"         { HELP }
-  | ":h"            { HELP }
+  | help spaces "word"     { HELP_WORD }
+  | help spaces "regexp"   { HELP_REGEXP }
+  | help spaces "dfa"      { HELP_DFA }
+  | help spaces "nfa"      { HELP_NFA }
+  | help            { HELP }
   | ":quiet"        { QUIET }
   | ":assert"       { ASSERT }
   | ":derivatives"  { DERIVATIVES }

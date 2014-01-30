@@ -1,3 +1,9 @@
+/***************************************************************/
+/*  Copyright 2014 Pierre Hyvernat. All rights reserved.       */
+/*  This file is distributed under the terms of the            */
+/*  GNU General Public License, described in file COPYING.     */
+/***************************************************************/
+
 %{
 open Misc
 open Regexp
@@ -13,16 +19,16 @@ let do_help () =
 "";
 "Small program for experimenting with regular expressions and automata.";
 "";
-"Commands:";
+"Commands";
+"========";
 "  # regexp                     print the regexp";
 "  # dfa                        print the table of the automaton";
 "  # nfa                        print the table of the automaton";
-"  # word                       print the (expanded) word";
+"  # word                       print the word";
 "";
 "  # R<n> := regexp             define a regexp";
 "  # D<n> := dfa                define a deterministic automaton";
 "  # N<n> := nfa                define a non-deterministic automaton";
-"  # N<n> := \\n table           define a non-deterministic automaton from a table";
 "";
 "  # \"word\" IN regexp           matches the string against the regexp";
 "  # \"word\" IN dfa              matches the string against the automaton";
@@ -38,53 +44,100 @@ let do_help () =
 "  # :quit                      quit";
 "  # :verbose                   toggle verbosity";
 "  # :quiet                     toggle printing results of affectations R<n>, D<n> and N<n>";
-"  # :help                      help message";
-"  # ?                          help message";
+"  # :help                      this message";
+"  # :help word                 help about words (strings)";
+"  # :help regexp               help about regexps";
+"  # :help dfa                  help about deterministic automata";
+"  # :help nfa                  help about non-deterministic automata";
+"  # ?                          this message";
 "";
-"words are obtained from symbols (lowercase letters) as well as repetitions/parenthesis,";
-"as in # \"(ab){5}\" IN a(ba)*b";
 "";
-"Basic regexp are obtained from 0, 1, lowercase letters, +, *, concatenation,";
-"complementation (~), user defined regexp (R<n>) and random regexps (<RANDOM>)";
+    ]
+
+let do_help_word () =
+    List.iter print_endline
+    [
+"Words";
+"=====";
+"Words are given between quotes '\"' and can only use lowercase letters.";
+"Repetition in POSIX style, with grouping, are expanded. For example,";
+"\"(ab){5}\" expands to \"ababababab\".";
 "";
-"Regexps can also be generated with";
+"";
+    ]
+
+let do_help_regexp () =
+    List.iter print_endline
+    [
+"Regular expressions";
+"===================";
+"Basic regular expressions are obtained from 0, 1, lowercase letters, infix '+',";
+"infix '.' (or plain concatenation) and postfix '*'";
+"Prefix '~' for complementation is available and is considered a regexp constructor.";
+"(To remove complementation, transform the expression to an automaton, and";
+"transform it back to a regular expression...)";
+"";
+"Expressions are always simplified using the obvious equalities.";
+"To prevent that, use '(# regexp)'...";
+"";
+"User defined expressions (R<n>) can be used, and '<RANDOM>' generates a random";
+"regular expression.";
+"";
+"POSIX style constructions are expanded to their definitions:";
+"    regexp?                      the regexp zero or one time";
+"    regexp{<n>}                  the regexp <n> times";
+"    regexp{<m>,<n>}              the regexp at least <m> times, at most <n> times";
+"    regexp{<n>,}                 the regexp at least <n> times";
+"";
+"Several operations on expressionsn are defined:";
+"    regexp & regexp              the intersection of two regexp (expanded using complements)";
 "    regexp / \"word\"              the word derivative of the regexp wrt to the string";
 "    regexp \\ \"word\"              the word antiderivative of the regexp wrt to the string";
 "    TRANSPOSE regexp             the transposition of the regexp";
 "    PREFIX regexp                regexp of prefixes";
 "    <nfa>                        the regexp associated to an automaton";
 "    <dfa>                        the regexp associated to an automaton";
-"    regexp?                      the regexp zero or one time";
-"    regexp{<n>}                  the regexp <n> times";
-"    regexp{<m>,<n>}              the regexp at least <m> times, at most <n> times";
-"    regexp{<n>,}                 the regexp at least <n> times";
-"    regexp & regexp              the intersection of two regexp (using complements)";
-"A regexp can be of the form (# regexp) to prevent simplifying it.";
 "";
-"dfa are obtained from:";
+"";
+    ]
+
+let do_help_dfa () =
+    List.iter print_endline
+    [
+"Deterministic finite automata";
+"=============================";
+"DFA are obtained from:";
 "     [regexp]                  automaton of the derivatives of the regexp";
 "     [nfa]                     determinisation of the automaton";
-"     D<n>                      user defined automaton";
-"     !dfa                      minimization of the automaton";
 "     dfa & dfa                 intersection of the two automata";
 "     dfa + dfa                 union of the two automata";
 "     ~dfa                      complement of the automaton";
 "     ~dfa / {a,b,c...}         complement of the automaton, with additional symbols";
+"     D<n>                      user defined automaton";
+"     !dfa                      minimization of the automaton";
 "";
-"nfa are obtained from:";
+"";
+    ]
+
+let do_help_nfa () =
+    List.iter print_endline
+    [
+"Non deterministic finite automata";
+"=================================";
+"NFA are obtained from:";
 "     {I regexp}                automaton inductively obtained from the regexp";
 "     {D regexp}                automaton obtained from the derivatives of the regexp";
 "     {regexp}                  automaton obtained from the derivatives of the regexp";
 "     {dfa}                     the same automaton, seen as non-deterministic";
-"     N<n>                      user defined automaton";
 "     nfa + nfa                 union of the two automata";
 "     nfa*                      star of the automaton";
 "     nfa . nfa                 concatenation of the automata";
+"     N<n>                      user defined automaton";
 "     TRANS nfa                 reversal of the automaton";
 "";
-"A table can be used to define a non-deterministic automaton.";
-"A table is given in the form";
-"           |  _ a  b  c      d   e";
+"User defined NFA can be given in table form. It takes the form:";
+"# N42 :=";
+"          |  _  a  b  c      d   e";
 "------------------------------------";
 " -> 1 ->  |  _  1  1  {1,2}  {}  {1}";
 "    2 ->  |  _  _  _  {2,3}  2   3";
@@ -265,7 +318,7 @@ let n_concat l n =
 
 //misc
 %token NEWLINE EOF
-%token ASSERT VERBOSE QUIT HELP AFFECT QUIET NOT QUESTION
+%token ASSERT VERBOSE QUIT HELP HELP_WORD HELP_REGEXP HELP_DFA HELP_NFA AFFECT QUIET NOT QUESTION
 %token DERIVATIVES
 %token <int> RANDOM
 %token <int> NUM
@@ -295,6 +348,10 @@ toplevel:
 
 command:
     | HELP                                          { do_help () }
+    | HELP_WORD                                     { do_help_word () }
+    | HELP_REGEXP                                   { do_help_regexp () }
+    | HELP_DFA                                      { do_help_dfa () }
+    | HELP_NFA                                      { do_help_nfa () }
     | QUESTION                                      { do_help () }
 
     | dfa                                           { DFA_Regexp.print ~show_labels:!verbose $1 ; print_newline () }

@@ -1,3 +1,9 @@
+(***************************************************************)
+(*  Copyright 2014 Pierre Hyvernat. All rights reserved.       *)
+(*  This file is distributed under the terms of the            *)
+(*  GNU General Public License, described in file COPYING.     *)
+(***************************************************************)
+
 open Misc
 
 
@@ -125,8 +131,8 @@ module type DFAType = sig
 
         val reachable : dfa -> dfa
         val make_total : ?symbols:symbol list -> dfa -> dfa
-        val accessible : dfa -> dfa
-        (* TODO co_accessible : dfa -> dfa *)
+        val collapse : dfa -> dfa
+        (* TODO co_reachable: dfa -> dfa *)
         val minimize : dfa -> dfa
 
         val complement : ?symbols:symbol list -> dfa -> dfa
@@ -451,7 +457,7 @@ module Make(Symbol:OType) (State:OType)
         end)
 
     (* minimization function *)
-    let accessible (d:dfa) : dfa =
+    let collapse (d:dfa) : dfa =
 
         (* states *)
         let states = get_states d in
@@ -559,7 +565,7 @@ module Make(Symbol:OType) (State:OType)
         (* we can now easily compute a representent for any atomic_state *)
         let repr (s:state) : state = MapSt.find s representants in
 
-        (* we accessible the automaton using this *)
+        (* we collapse the automaton using this *)
         let matrix = LTS.map repr d.matrix in
 
         (* we also replace each accepting atomic_state by its representant,
@@ -588,7 +594,7 @@ module Make(Symbol:OType) (State:OType)
             symbols = d.symbols     ;
         }
 
-    let minimize (d:dfa) : dfa = accessible (reachable d)
+    let minimize (d:dfa) : dfa = collapse (reachable d)
 
     (* complement of an automaton
      * we just change the accepting states *)
@@ -650,7 +656,7 @@ module Make(Symbol:OType) (State:OType)
         }
 
 
-    (* FIXME: I should only construct the accessible part *)
+    (* FIXME: I should only construct the reachable part *)
     (* FIXME: doesn't work if the automata aren't total...
      * I should use two new dummy states D1 D2 and have transitions from
      * (s1,s2) to (ns1,D2) when the right transition isn't defined, and
@@ -732,7 +738,7 @@ module Make(Symbol:OType) (State:OType)
     let subset ?(counterexample=false) (d1:dfa) (d2:dfa) : bool =
 
         (* FIXME: is it better to minimize or not???
-         * Probably not as soon as I only construct the accessible part of the
+         * Probably not as soon as I only construct the reachable part of the
          * intersection... *)
         let d1 = d1 in
         let cd2 = complement d2 ~symbols:(get_symbols d1) in

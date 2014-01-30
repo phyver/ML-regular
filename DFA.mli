@@ -1,3 +1,9 @@
+(***************************************************************)
+(*  Copyright 2014 Pierre Hyvernat. All rights reserved.       *)
+(*  This file is distributed under the terms of the            *)
+(*  GNU General Public License, described in file COPYING.     *)
+(***************************************************************)
+
 module type DFAType = sig
     type symbol
     type atomic_state
@@ -20,7 +26,7 @@ module type DFAType = sig
 
     val reachable : dfa -> dfa
     val make_total : ?symbols:symbol list -> dfa -> dfa
-    val accessible : dfa -> dfa
+    val collapse: dfa -> dfa
     val minimize : dfa -> dfa
 
     val complement : ?symbols:symbol list -> dfa -> dfa
