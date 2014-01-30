@@ -32,7 +32,7 @@ Par exemple, la ligne suivante affichera "true"
 Par exemple, la ligne suivant doit afficher "true" -}
 (1 + ab + a(ba)*bab) == ab*
 
-{- si on utilise la commande ":verbose", alors le programme nous affiche un
+{- si on utilise la commande ":verbose", le programme nous affiche un
 contre exemple lorsqu'on demande de vérifier une égalité fausse.
 Par exemple, la première ligne affiche simplement "false", mais après le
 ":verbose", elle nous donne un contre-exemple : le mot vide.
@@ -43,7 +43,7 @@ Par exemple, la première ligne affiche simplement "false", mais après le
 
 
 {- on peut calculer une dérivée avec le symbole "/". Le résultat est simplifié
-en utilisant uniquement les rêgles évidentes. Par exemple, les trois lignes
+en utilisant uniquement les règles évidentes. Par exemple, les trois lignes
 suivantes affichent
 b*(aab* + bb + bab*)* + a*(aab* + bb + bab*)*
 (b + ab*)(aab* + bb + bab*)*
@@ -57,7 +57,8 @@ a*(aab* + bab* + bb)* / "abc"
 :derivatives a*(aab* + bab* + bb)* / "a"
 
 {- Note : on peut définir des expressions régulières R1, R2, R3, etc. avec
-":=" -}
+le symbole ":=". Cela permet de réutiliser des expressions pour former des
+expressions complexes... -}
 R1 := (aa + ab)*
 R2 := (R1 + aa R1 bb)*
 R3 := R2 / "aabb"

@@ -392,6 +392,7 @@ sum_regexp:
 product_regexp:
     | atomic_regexp                     { $1 }
     | atomic_regexp product_regexp      { Product($1, $2) }
+    | atomic_regexp DOT product_regexp  { Product($1, $3) }
 
 atomic_regexp:
     | ZERO                                  { Zero }

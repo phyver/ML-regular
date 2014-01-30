@@ -6,7 +6,7 @@ machine linux Ubuntu ou Debian, il suffit de faire
   $ sudo apt-get install ocaml-nox
 
 Je vous conseille aussi d'installer "ledit" :
-  $ sudo apt-get install ledit rlwrap
+  $ sudo apt-get install ledit
 
 Pour compiler, depuis le répertoire qui contient les sources :
   $ touch .depend && make depend && make opt
