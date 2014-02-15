@@ -18,7 +18,7 @@ OPTFILES=common.cmx regexp.cmx DFA.cmx NFA.cmx lexer.cmx conversions.cmx parser.
 .SUFFIXES: .ml .mli .cmo .cmi .cmx
 
 .ml.cmo:
-	$(OCAMLC) $(OCAMLFLAGS) -c $<
+	$(OCAMLC) $(OCAMLFLAGS) -c -annot $<
 
 .mli.cmi:
 	$(OCAMLC) $(OCAMLFLAGS) -c $<
@@ -30,6 +30,8 @@ all: opt
 
 prof: $(OPTFILES)
 	$(OCAMLOPT) -p $(INCLUDES) $(OPTFILES) -o prof prof.ml
+
+annot: $(BYTEFILES)
 
 byte: $(BYTEFILES)
 	$(OCAMLC) $(INCLUDES) $(BYTEFILES) -o mlr main.ml
@@ -58,6 +60,7 @@ clean:
 very_clean:
 	rm -f *.cm[aoix] *.o
 	rm -f lexer.ml parser.ml parser.mli
+	rm -f *.annot
 	rm -f ML-regular.tar.gz
 	rm -f gmon.out
 	rm -f prof mlr
