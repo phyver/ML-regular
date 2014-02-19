@@ -25,15 +25,18 @@ let do_help () =
 "  # regexp                     print the regexp";
 "  # dfa                        print the table of the automaton";
 "  # nfa                        print the table of the automaton";
+"  # L<n>                       print the context free language";
 "  # word                       print the word";
 "";
 "  # R<n> := regexp             define a regexp";
 "  # D<n> := dfa                define a deterministic automaton";
 "  # N<n> := nfa                define a non-deterministic automaton";
+"  # L<n> := language           define a context free language";
 "";
 "  # \"word\" IN regexp           matches the string against the regexp";
 "  # \"word\" IN dfa              matches the string against the automaton";
 "  # \"word\" IN nfa              matches the string against the automaton";
+"  # \"word\" IN L<n>(var)        matches the string against the context free language";
 "";
 "  # expr == expr               test if the two expressions are equal";
 "  # expr >> expr               test if the first expression has a larger language than the second";
@@ -52,6 +55,7 @@ let do_help () =
 "  # :help regexp               help about regexps";
 "  # :help dfa                  help about deterministic automata";
 "  # :help nfa                  help about non-deterministic automata";
+"  # :help lang                 help about context free language";
 "  # ?                          this message";
 "";
 "";
@@ -151,6 +155,24 @@ let do_help_nfa () =
 "";
     ]
 
+let do_help_language () =
+    List.iter print_endline
+    [
+"Context free languages";
+"======================";
+"Context free languages are defined using equations on regular expressions.";
+"For example, to define the language of palindromic words on {a,b,c}:";
+"  # L1 :=";
+"   X -> 1 + a + b + a X a + b X b + c X c";
+"";
+"Note that variables are necessarily upper case...";
+"";
+"We can then get the language derived from a non terminal with";
+"  # L1(x) / \"aba\"";
+"";
+"";
+    ]
+
 let toggle_verbosity b =
     if not b
     then
@@ -176,6 +198,7 @@ module IntMap = Map.Make(struct type t=int let compare=compare end)
 let list_NFA = ref IntMap.empty
 let list_DFA = ref IntMap.empty
 let list_REG = ref IntMap.empty
+let list_LANG = ref IntMap.empty
 
 let get_REG n =
     try IntMap.find n !list_REG
@@ -186,6 +209,9 @@ let get_DFA n =
 let get_NFA n =
     try IntMap.find n !list_NFA
     with Not_found -> raise(Invalid_argument("no such automaton N"^(string_of_int n)))
+let get_LANG n =
+    try IntMap.find n !list_LANG
+    with Not_found -> raise(Invalid_argument("no such context-free language L"^(string_of_int n)))
 
 (* transform a parsed table into a non-deterministic automaton *)
 let make_nfa (symbols:char option list)
@@ -313,6 +339,8 @@ let print_set l = match l with
 %token <int> DFA
 %token <int> NFA
 %token <int> REG
+%token <int> LANG
+%token <string> VAR
 
 //grouping
 %token LPARHASH LPAR RPAR LBR RBR LCURLI LCURLD LCURL RCURL LANGL RANGL
@@ -329,7 +357,7 @@ let print_set l = match l with
 
 //misc
 %token NEWLINE EOF
-%token ASSERT VERBOSE QUIT HELP HELP_WORD HELP_REGEXP HELP_DFA HELP_NFA AFFECT
+%token ASSERT VERBOSE QUIT HELP HELP_WORD HELP_REGEXP HELP_DFA HELP_NFA HELP_LANG AFFECT
 %token QUIET NOT QUESTION SET ALPHABET
 %token DERIVATIVES
 %token <int> RANDOM
@@ -364,12 +392,14 @@ command:
     | HELP_REGEXP                                   { do_help_regexp () }
     | HELP_DFA                                      { do_help_dfa () }
     | HELP_NFA                                      { do_help_nfa () }
+    | HELP_LANG                                     { do_help_language () }
     | QUESTION                                      { do_help () }
 
     | dfa                                           { DFA_Regexp.print ~show_labels:!verbose $1 ; print_newline () }
     | nfa                                           { NFA_Regexp.print ~show_labels:!verbose $1 ; print_newline () }
     | regexp                                        { print_regexp $1 ; print_newline () }
     | word                                          { print_endline ("\"" ^ $1 ^ "\"") }
+    | language                                      { print_language $1 }
 
     | REG AFFECT regexp                             { list_REG := IntMap.add $1 $3 !list_REG ;
                                                       if not !quiet
@@ -381,6 +411,7 @@ command:
                                                       if not !quiet
                                                       then (NFA_Regexp.print ~show_labels:!verbose $3 ; print_newline ()) }
     | NFA AFFECT NEWLINE table                      { list_NFA := IntMap.add $1 $4 !list_NFA }
+    | LANG AFFECT NEWLINE language                  { list_LANG := IntMap.add $1 (List.rev $4) !list_LANG}
 
     | assertion                                     { if $1 then print_endline "true" else print_endline "false" }
     | ASSERT assertion                              { assertion $2 }
@@ -405,6 +436,7 @@ command:
 assertion:
     | NOT assertion                         { not $2 }
     | word IN regexp                        { match_regexp $1 $3 }
+    | word IN LANG LPAR VAR RPAR            { match_language $1 (get_LANG $3) $5 }
     | word IN dfa                           { DFA_Regexp.accepts $3 (explode $1) }
     | word IN nfa                           { NFA_Regexp.accepts $3 (explode $1) }
     | INFINITE regexp                       { is_infinite $2 }
@@ -454,6 +486,11 @@ nfa:
     | LCURL dfa RCURL               { NFA_Regexp.from_dfa $2 }
     | NFA                           { get_NFA $1 }
 
+language:
+    | LANG                              { get_LANG $1 }
+    | LANG LPAR VAR RPAR SLASH word     { language_word_derivative (get_LANG $1) $3 $6 }
+
+
 regexp:
     | raw_regexp                    { simplify $1 }
     | LPARHASH raw_regexp RPAR      { $2 }
@@ -477,6 +514,7 @@ atomic_regexp:
     | ZERO                                  { Zero }
     | ONE                                   { One }
     | SYMB                                  { Symb($1) }
+    | VAR                                   { Var($1) }
     | LPAR raw_regexp RPAR                  { $2 }
     | atomic_regexp STAR                    { Star($1) }
     | TILDE atomic_regexp                   { Neg($2) }
@@ -547,3 +585,7 @@ atomic_word:
     | SYMB                                      { [$1] }
     | LPAR raw_word RPAR                        { $2 }
     | atomic_word LCURL num RCURL               { n_concat $1 $3 }
+
+language:
+    |                                       {[]}
+    | VAR ARROW regexp NEWLINE language     { ($1,$3)::$5}

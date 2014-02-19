@@ -12,7 +12,7 @@
 :assert (a+b)* == (a*b)*a*
 
 :set alphabet {a,b}
-:assert (ab)* == 1 + ~(~0 (aa+bb) ~0) & a ~0 & ~0 b
+:assert ab(ab)* == ~(~0 (aa+bb) ~0) & a ~0 b
 
 
 :set verbose 1

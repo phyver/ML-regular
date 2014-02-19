@@ -95,6 +95,7 @@ let rec nfa_from_regexp_inductive r = match r with
     | Star(r) ->
             let d = nfa_from_regexp_inductive r in
             NFA_Regexp.star d
+    | Var(_) -> assert false
 
 (* transform a regexp into an NFA by computing its derivatives *)
 let nfa_from_regexp_derivative ?(alphabet=[]) (r:regexp) : NFA_Regexp.nfa =

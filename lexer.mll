@@ -18,11 +18,13 @@ let character =  [ 'a'-'z' ]
 let reg = "R" [ '0'-'9' ]+
 let dfa = "D" [ '0'-'9' ]+
 let nfa = "N" [ '0'-'9' ]+
+let lang = "L" [ '0'-'9' ]+
 let random = "RANDOM" [ '0'-'9' ]*
 let line = "-----" "-"*
 let num = [ '0'-'9' ]+
 let help = ":help" | ":h"
 let spaces = [ ' ' '\t' ]+
+let var = [ 'X' 'Y' 'Z'] [ 'a'-'z' 'A'-'Z' '0'-'9' '_']*
 
 rule token = parse
   | '('             { LPAR }
@@ -62,6 +64,8 @@ rule token = parse
   | reg             { REG(get_index (Lexing.lexeme lexbuf)) }
   | dfa             { DFA(get_index (Lexing.lexeme lexbuf)) }
   | nfa             { NFA(get_index (Lexing.lexeme lexbuf)) }
+  | lang            { LANG(get_index (Lexing.lexeme lexbuf)) }
+  | var             { VAR(Lexing.lexeme lexbuf)}
   | ":="            { AFFECT }
   | "->"            { ARROW }
   | "_"             { UNDERSCORE }
@@ -83,6 +87,7 @@ rule token = parse
   | help spaces "regexp"   { HELP_REGEXP }
   | help spaces "dfa"      { HELP_DFA }
   | help spaces "nfa"      { HELP_NFA }
+  | help spaces "lang"     { HELP_LANG }
   | help            { HELP }
   | ":assert"       { ASSERT }
   | ":derivatives"  { DERIVATIVES }
