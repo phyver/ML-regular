@@ -89,6 +89,7 @@ let rec print_raw_regexp (r:regexp) : unit = match r with
 let rec get_summands (r:regexp): regexp list = match r with
     | Sum(r1, r2) -> List.rev_append (get_summands r1) (get_summands r2)
           (* addition is commutative, so that the order is unimportant *)
+    | Zero -> []
     | r -> [r]
 
 (* its converse: convert a list into a sum *)

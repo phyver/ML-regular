@@ -478,21 +478,18 @@ module Make (Symbol:OType) (State:OType)
             ) d2.matrix matrix1
         in
 
-        (* we add a new state, and add epsilon transitions to all the
-         * starting states of d1 ... *)
-        let dummy = Dummy("U") in
-        let matrix =
-            List.fold_left (fun matrix i1 ->
-                LTS.add dummy None (In(1,i1)) matrix
-            ) matrix (get_init d1)
+        (* we rename the initial states of d1 *)
+        let init =
+            SetStates.fold (fun s1 acc ->
+                SetStates.add (In(1,s1)) acc
+            ) d1.init SetStates.empty
         in
-        (* ... and to the starting states of d2 *)
-        let matrix =
-            List.fold_left (fun matrix i2 ->
-                LTS.add dummy None (In(2,i2)) matrix
-            ) matrix (get_init d2)
+        (* and add the (renamed) initial states of d2 *)
+        let init =
+            SetStates.fold (fun s2 acc ->
+                SetStates.add (In(2,s2)) acc
+            ) d2.init init
         in
-
         (* we rename the accepting states of d1 *)
         let accepting =
             SetStates.fold (fun s1 acc ->
@@ -506,7 +503,7 @@ module Make (Symbol:OType) (State:OType)
             ) d2.accepting accepting
         in
         {
-            init = SetStates.singleton dummy                        ;
+            init = init                                             ;
             matrix = matrix                                         ;
             accepting = accepting                                   ;
             symbols = SetSymbols.union (d1.symbols) (d2.symbols)    ;

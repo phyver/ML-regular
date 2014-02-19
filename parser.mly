@@ -114,6 +114,7 @@ let do_help_dfa () =
 "     [nfa]                     determinisation of the automaton";
 "     dfa & dfa                 intersection of the two automata";
 "     dfa + dfa                 union of the two automata";
+"     dfa | dfa                 union of the two automata";
 "     ~dfa                      complement of the automaton";
 "     ~dfa / {a,b,c...}         complement of the automaton, with additional symbols";
 "     D<n>                      user defined automaton";
@@ -133,6 +134,7 @@ let do_help_nfa () =
 "     {regexp}                  automaton obtained from the derivatives of the regexp";
 "     {dfa}                     the same automaton, seen as non-deterministic";
 "     nfa + nfa                 union of the two automata";
+"     nfa | nfa                 union of the two automata";
 "     nfa*                      star of the automaton";
 "     nfa . nfa                 concatenation of the automata";
 "     N<n>                      user defined automaton";
@@ -426,6 +428,7 @@ dfa:
     | TILDE dfa SLASH alphabet  { DFA_Regexp.complement $2 ~alphabet:$4 }
     | BANG dfa                  { DFA_Regexp.minimize $2 }
     | dfa PIPE dfa              { DFA_Regexp.union $1 $3 }
+    | dfa PLUS dfa              { DFA_Regexp.union $1 $3 }
     | dfa AMPER dfa             { DFA_Regexp.intersection $1 $3 }
     | LBR nfa RBR               { NFA_Regexp.to_dfa $2 }
     | DFA                       { get_DFA $1 }
@@ -444,6 +447,7 @@ nfa:
     | LCURLD regexp RCURL           { nfa_from_regexp_derivative ~alphabet:!alphabet $2 }
     | LCURLI regexp RCURL           { nfa_from_regexp_inductive $2 }
     | nfa PIPE nfa                  { NFA_Regexp.union $1 $3 }
+    | nfa PLUS nfa                  { NFA_Regexp.union $1 $3 }
     | nfa STAR                      { NFA_Regexp.star $1 }
     | nfa DOT nfa                   { NFA_Regexp.concat $1 $3 }
     | TRANS nfa                     { NFA_Regexp.transpose $2 }
