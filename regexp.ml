@@ -96,9 +96,9 @@ let rec print_raw_regexp (r:regexp) : unit = match r with
 
 (* get all top-level summands from a regexp *)
 let rec get_summands (r:regexp): regexp list = match r with
+    | Zero -> []
     | Sum(r1, r2) -> List.rev_append (get_summands r1) (get_summands r2)
           (* addition is commutative, so that the order is unimportant *)
-    | Zero -> []
     | r -> [r]
 
 (* its converse: convert a list into a sum *)
@@ -109,6 +109,7 @@ let rec list2sum (l:regexp list) :regexp = match l with
 
 (* get all top-level factors from a regexp *)
 let rec get_factors (r:regexp): regexp list = match r with
+    | One -> []
     | Product(r1, r2) -> List.append (get_factors r1) (get_factors r2)
     | r -> [r]
 
@@ -202,9 +203,9 @@ let contains_epsilon (r:regexp) : bool =
 module MP = Map.Make(struct type t=regexp let compare = compare end)
 module MS = Map.Make(struct type t=string let compare = String.compare end)
 module SS = Set.Make(struct type t=string let compare = String.compare end)
-let derivative_new (l:language) (x:var) (a:symbol) : language =
+let language_derivative (l:language) (x:var) (a:symbol) : language =
     let initial_language = List.fold_left (fun l xr -> MS.add (fst xr) (snd xr) l) MS.empty l in
-    let derived_language = ref [] in
+    let derived_language = ref (MS.empty) in
     let to_derive = ref (SS.singleton x) in
 
     let rec get_var r = match r with
@@ -213,7 +214,7 @@ let derivative_new (l:language) (x:var) (a:symbol) : language =
         | Star(r) | Neg(r) -> get_var r
         | Var(x) ->
                 if MS.mem x initial_language
-                then derived_language := (x, MS.find x initial_language)::!derived_language
+                then derived_language := MS.add x (MS.find x initial_language) !derived_language
     in
 
     let mem = ref MP.empty in
@@ -236,11 +237,11 @@ let derivative_new (l:language) (x:var) (a:symbol) : language =
                             simplify_product (derivative_mem r1 a) r2
                 | Star(r) -> simplify_product (derivative_mem r a)
                                               (Star(r))
-                | Neg(r) -> Neg (derivative_mem r a)
+                | Neg(_) -> raise (Failure "negation not allowed in context-free languages")
                 | Var(x) ->
                         begin
                             let xa = x ^ (String.make 1 a) in
-                            if not (List.mem_assoc xa !derived_language)
+                            if not (MS.mem xa !derived_language)
                             then to_derive := SS.add x !to_derive;
                             Var(xa)
                         end
@@ -261,17 +262,17 @@ let derivative_new (l:language) (x:var) (a:symbol) : language =
             to_derive := SS.remove x !to_derive;
             let d = derivative_mem (MS.find x initial_language) a in
             get_var d;
-            derived_language := (xa,d)::!derived_language
+            derived_language := MS.add xa d !derived_language
 
         done;
         assert false
     with Exit ->
-        List.rev !derived_language
+        MS.fold (fun x r acc -> (x,r)::acc ) !derived_language []
 
 
 (* the "derivative with respect to a symbol" of a regular expression *)
 (* module MP = Map.Make(struct type t=regexp let compare = compare end) *)
-let derivative ?(l=[]) (r:regexp) (a:symbol) : regexp =
+let derivative (r:regexp) (a:symbol) : regexp =
     (* we'll memoize the results *)
     let mem = ref MP.empty in
     let rec derivative_mem (r:regexp) (a:symbol) : regexp =
@@ -284,7 +285,7 @@ let derivative ?(l=[]) (r:regexp) (a:symbol) : regexp =
                 | Sum(r1, r2) -> simplify_sum (derivative_mem r1 a)
                                               (derivative_mem r2 a)
                 | Product(r1, r2) ->
-                        if contains_epsilon_language l r1
+                        if contains_epsilon_language [] r1
                         then
                             let p = simplify_product (derivative_mem r1 a)
                                                      r2
@@ -294,22 +295,12 @@ let derivative ?(l=[]) (r:regexp) (a:symbol) : regexp =
                 | Star(r) -> simplify_product (derivative_mem r a)
                                               (Star(r))
                 | Neg(r) -> Neg (derivative_mem r a)
-                | Var(s) -> Var(s ^ String.make 1 a)
+                | Var(_) -> raise (Failure "cannot derive regexp variable outside context-free languages")
             in
             mem := MP.add r d !mem;
             d
     in
     derivative_mem r a
-
-let language_derivative (l:language) (a:symbol) : language =
-    let rec aux ll acc = match ll with
-        | [] -> List.rev_append acc l
-        | (x,r)::ll ->
-                if List.mem_assoc (x^(String.make 1 a)) l
-                then aux ll acc
-                else aux ll ((x^(String.make 1 a),derivative ~l:l r a)::acc)
-    in
-    aux l []
 
 (* the derivative with respect to a word *)
 let word_derivative (r:regexp) (w:string) : regexp =
@@ -337,7 +328,7 @@ let language_word_derivative (l:language) (x:var) (w:string) : language =
         | [] -> l
         | a::w ->
             let xa = x ^ (String.make 1 a) in
-            aux (derivative_new l x a) xa w
+            aux (language_derivative l x a) xa w
     in
     aux l x (explode w)
 
@@ -347,7 +338,7 @@ let match_language (w:string) (l:language) (x:var) : bool =
     let rec aux w l x = match w with
         | [] -> contains_epsilon_language l (Var(x))
         | a::w ->
-                let l = derivative_new l x a in
+                let l = language_derivative l x a in
 (*                 print_endline "new derivative: "; print_language l; print_newline(); *)
 (*                 print_endline ((string_of_int (List.length l)) ^ " equations"); *)
                 aux w l (x^(String.make 1 a))
@@ -367,7 +358,7 @@ let get_symbols (r:regexp) : symbol list =
     | Star(r) -> aux r
     | Sum(r1, r2) | Product(r1, r2) -> List.rev_append (aux r1) (aux r2)
     | Neg(r) -> aux r
-    | Var(_) -> assert false
+    | Var(_) -> []
     in
     let l = aux r in
     let l = List.sort compare l in
@@ -428,7 +419,7 @@ let rec is_empty (r:regexp) : bool = match r with
     | Product(r1,r2) -> is_empty r1 || is_empty r2
     | Star(_) -> false
     | Neg(r) -> not (is_empty r)
-    | Var(_) -> assert false
+    | Var(_) -> raise (Failure "regexp variable are allowed outside context free languages")
 
 
 (* check if the languae of a regular is less than One, ie it contains at most
@@ -439,8 +430,8 @@ let rec lessOne (r:regexp) : bool = match r with
     | Sum(r1,r2) -> lessOne r1 && lessOne r2
     | Product(r1,r2) -> is_empty r1 || is_empty r2 || (lessOne r1 && lessOne r2)
     | Star(r) -> lessOne r
-    | Neg(r) -> raise (Failure "cannot check directly if a complement regexp is less than One")
-    | Var(_) -> assert false
+    | Neg(_) -> raise (Failure "cannot check directly if a complement regexp is less than One")
+    | Var(_) -> raise (Failure "regexp variable are allowed outside context free languages")
 
 
 (* check if the language of a regexp is infinite *)
@@ -450,8 +441,8 @@ let rec is_infinite (r:regexp) : bool = match r with
     | Product(r1,r2) -> (is_infinite r1 && not (is_empty r2)) ||
                         (not (is_empty r1) && is_infinite r2)
     | Star(r) -> not (lessOne r)
-    | Neg(r) -> not (is_infinite r)
-    | Var(_) -> assert false
+    | Neg(_) -> not (is_infinite r)
+    | Var(_) -> raise (Failure "regexp variable are allowed outside context free languages")
 
 
 (* compute the regexp of prefixes *)
@@ -464,8 +455,8 @@ let rec prefix (r:regexp) : regexp = match r with
             let p = simplify_product r1 (prefix r2) in
             simplify_sum (prefix r1) p
     | Star(r) -> simplify_product (Star(r)) (prefix r)
-    | Neg(r) -> raise (Failure "cannot compute directly the prefix of a complement regexp")
-    | Var(_) -> assert false
+    | Neg(_) -> raise (Failure "cannot compute directly the prefix of a complement regexp")
+    | Var(_) -> raise (Failure "regexp variable are allowed outside context free languages")
 
 
 (* random regexp of (at most) given depth using a given alphabet *)
