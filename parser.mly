@@ -168,7 +168,7 @@ let do_help_language () =
 "Note that variables are necessarily upper case...";
 "";
 "We can then get the language derived from a non terminal with";
-"  # L1(x) / \"aba\"";
+"  # L1(X) / \"aba\"";
 "";
 "";
     ]
