@@ -6,7 +6,7 @@
 
 %{
 open Common
-open Regexp
+open Regex
 open Conversions
 
 let verbose = ref false
@@ -22,41 +22,41 @@ let do_help () =
 "";
 "Commands";
 "========";
-"  # regexp                     print the regexp";
-"  # dfa                        print the table of the automaton";
-"  # nfa                        print the table of the automaton";
-"  # L<n>                       print the context free language";
-"  # word                       print the word";
+"  # regex                     print the regex";
+"  # dfa                       print the table of the automaton";
+"  # nfa                       print the table of the automaton";
+"  # L<n>                      print the context free language";
+"  # word                      print the word";
 "";
-"  # R<n> := regexp             define a regexp";
-"  # D<n> := dfa                define a deterministic automaton";
-"  # N<n> := nfa                define a non-deterministic automaton";
-"  # L<n> := language           define a context free language";
+"  # R<n> := regex             define a regex";
+"  # D<n> := dfa               define a deterministic automaton";
+"  # N<n> := nfa               define a non-deterministic automaton";
+"  # L<n> := language          define a context free language";
 "";
-"  # \"word\" IN regexp           matches the string against the regexp";
-"  # \"word\" IN dfa              matches the string against the automaton";
-"  # \"word\" IN nfa              matches the string against the automaton";
-"  # \"word\" IN L<n>(var)        matches the string against the context free language";
+"  # \"word\" IN regex           matches the string against the regex";
+"  # \"word\" IN dfa             matches the string against the automaton";
+"  # \"word\" IN nfa             matches the string against the automaton";
+"  # \"word\" IN L<n>(var)       matches the string against the context free language";
 "";
-"  # expr == expr               test if the two expressions are equal";
-"  # expr >> expr               test if the first expression has a larger language than the second";
-"  # expr << expr               test if the second expression has a larger language than the first";
-"  # EMPTY expr                 test if a an expression has an empty language";
-"  # INFINITE regexp            test if the regexp has an infinite language";
+"  # expr == expr              test if the two expressions are equal";
+"  # expr >> expr              test if the first expression has a larger language than the second";
+"  # expr << expr              test if the second expression has a larger language than the first";
+"  # EMPTY expr                test if a an expression has an empty language";
+"  # INFINITE regex            test if the regex has an infinite language";
 "";
-"  # :derivatives regexp        show all the derivatives of a regexp";
-"  # :quit                      quit";
-"  # :set verbose 0/1           set verbosity";
-"  # :set quiet 0/1             toggle printing results of affectations R<n>, D<n> and N<n>";
-"  # :set alphabet {a,b,...}    set the default alphabet";
+"  # :derivatives regex        show all the derivatives of a regex";
+"  # :quit                     quit";
+"  # :set verbose 0/1          set verbosity";
+"  # :set quiet 0/1            toggle printing results of affectations R<n>, D<n> and N<n>";
+"  # :set alphabet {a,b,...}   set the default alphabet";
 "";
-"  # :help                      this message";
-"  # :help word                 help about words (strings)";
-"  # :help regexp               help about regexps";
-"  # :help dfa                  help about deterministic automata";
-"  # :help nfa                  help about non-deterministic automata";
-"  # :help lang                 help about context free language";
-"  # ?                          this message";
+"  # :help                     this message";
+"  # :help word                help about words (strings)";
+"  # :help regex               help about regexs";
+"  # :help dfa                 help about deterministic automata";
+"  # :help nfa                 help about non-deterministic automata";
+"  # :help lang                help about context free language";
+"  # ?                         this message";
 "";
 "";
     ]
@@ -73,37 +73,37 @@ let do_help_word () =
 "";
     ]
 
-let do_help_regexp () =
+let do_help_regex () =
     List.iter print_endline
     [
 "Regular expressions";
 "===================";
 "Basic regular expressions are obtained from 0, 1, lowercase letters, infix '+',";
 "infix '.' (or plain concatenation) and postfix '*'";
-"Prefix '~' for complementation is available and is considered a regexp constructor.";
+"Prefix '~' for complementation is available and is considered a regex constructor.";
 "(To remove complementation, transform the expression to an automaton, and";
 "transform it back to a regular expression...)";
 "";
 "Expressions are always simplified using the obvious equalities.";
-"To prevent that, use '(# regexp)'...";
+"To prevent that, use '(# regex)'...";
 "";
 "User defined expressions (R<n>) can be used, and '<RANDOM>' generates a random";
 "regular expression.";
 "";
 "POSIX style constructions are expanded to their definitions:";
-"    regexp?                      the regexp zero or one time";
-"    regexp{<n>}                  the regexp <n> times";
-"    regexp{<m>,<n>}              the regexp at least <m> times, at most <n> times";
-"    regexp{<n>,}                 the regexp at least <n> times";
+"    regex?                      the regex zero or one time";
+"    regex{<n>}                  the regex <n> times";
+"    regex{<m>,<n>}              the regex at least <m> times, at most <n> times";
+"    regex{<n>,}                 the regex at least <n> times";
 "";
 "Several operations on expressionsn are defined:";
-"    regexp & regexp              the intersection of two regexp (expanded using complements)";
-"    regexp / \"word\"              the word derivative of the regexp wrt to the string";
-"    regexp \\ \"word\"              the word antiderivative of the regexp wrt to the string";
-"    TRANSPOSE regexp             the transposition of the regexp";
-"    PREFIX regexp                regexp of prefixes";
-"    <nfa>                        the regexp associated to an automaton";
-"    <dfa>                        the regexp associated to an automaton";
+"    regex & regex               the intersection of two regex (expanded using complements)";
+"    regex / \"word\"              the word derivative of the regex wrt to the string";
+"    regex \\ \"word\"              the word antiderivative of the regex wrt to the string";
+"    TRANSPOSE regex             the transposition of the regex";
+"    PREFIX regex                regex of prefixes";
+"    <nfa>                       the regex associated to an automaton";
+"    <dfa>                       the regex associated to an automaton";
 "";
 "";
     ]
@@ -114,7 +114,7 @@ let do_help_dfa () =
 "Deterministic finite automata";
 "=============================";
 "DFA are obtained from:";
-"     [regexp]                  automaton of the derivatives of the regexp";
+"     [regex]                   automaton of the derivatives of the regex";
 "     [nfa]                     determinisation of the automaton";
 "     dfa & dfa                 intersection of the two automata";
 "     dfa + dfa                 union of the two automata";
@@ -133,9 +133,9 @@ let do_help_nfa () =
 "Non deterministic finite automata";
 "=================================";
 "NFA are obtained from:";
-"     {I regexp}                automaton inductively obtained from the regexp";
-"     {D regexp}                automaton obtained from the derivatives of the regexp";
-"     {regexp}                  automaton obtained from the derivatives of the regexp";
+"     {I regex}                 automaton inductively obtained from the regex";
+"     {D regex}                 automaton obtained from the derivatives of the regex";
+"     {regex}                   automaton obtained from the derivatives of the regex";
 "     {dfa}                     the same automaton, seen as non-deterministic";
 "     nfa + nfa                 union of the two automata";
 "     nfa | nfa                 union of the two automata";
@@ -202,7 +202,7 @@ let list_LANG = ref IntMap.empty
 
 let get_REG n =
     try IntMap.find n !list_REG
-    with Not_found -> raise(Invalid_argument("no such regexp R"^(string_of_int n)))
+    with Not_found -> raise(Invalid_argument("no such regex R"^(string_of_int n)))
 let get_DFA n =
     try IntMap.find n !list_DFA
     with Not_found -> raise(Invalid_argument("no such automaton D"^(string_of_int n)))
@@ -240,12 +240,12 @@ let make_nfa (symbols:char option list)
     in
     let matrix = List.map (function s,row -> (s,process_row row)) matrix in
 
-    NFA_Regexp.from_matrix matrix init accepting
+    NFA_Regex.from_matrix matrix init accepting
 
 let dfa_subset d1 d2 =
     try
-        DFA_Regexp.subset ~counterexample:!verbose d1 d2
-    with DFA_Regexp.Found(u) ->
+        DFA_Regex.subset ~counterexample:!verbose d1 d2
+    with DFA_Regex.Found(u) ->
         print_string "    <<< found counter-example: \"";
         List.iter print_char u;
         print_endline "\" >>>";
@@ -253,8 +253,8 @@ let dfa_subset d1 d2 =
 
 let dfa_empty d =
     try
-        DFA_Regexp.is_empty ~counterexample:!verbose d
-    with DFA_Regexp.Found(u) ->
+        DFA_Regex.is_empty ~counterexample:!verbose d
+    with DFA_Regex.Found(u) ->
         print_string "    <<< found accepting word: \"";
         List.iter print_char u;
         print_endline "\" >>>";
@@ -262,8 +262,8 @@ let dfa_empty d =
 
 let nfa_empty d =
     try
-        NFA_Regexp.is_empty ~counterexample:!verbose d
-    with NFA_Regexp.Found(u) ->
+        NFA_Regex.is_empty ~counterexample:!verbose d
+    with NFA_Regex.Found(u) ->
         print_string "    <<< found accepting word: \"";
         List.iter print_char u;
         print_endline "\" >>>";
@@ -303,7 +303,7 @@ let sum m n r =
 
 let show_derivatives r =
     print_string "> derivatives of ";
-    print_regexp r;
+    print_regex r;
     print_newline ();
     let der = get_all_derivatives r in
     List.iter
@@ -313,7 +313,7 @@ let show_derivatives r =
             then print_string "1"
             else List.iter print_char w;
             print_string " --> ";
-            print_regexp r;
+            print_regex r;
             print_newline ())
         der
 
@@ -357,7 +357,7 @@ let print_set l = match l with
 
 //misc
 %token NEWLINE EOF
-%token ASSERT VERBOSE QUIT HELP HELP_WORD HELP_REGEXP HELP_DFA HELP_NFA HELP_LANG AFFECT
+%token ASSERT VERBOSE QUIT HELP HELP_WORD HELP_REGEX HELP_DFA HELP_NFA HELP_LANG AFFECT
 %token QUIET NOT QUESTION SET ALPHABET
 %token DERIVATIVES
 %token <int> RANDOM
@@ -379,7 +379,7 @@ let print_set l = match l with
 
 %start toplevel
 %type <unit> toplevel
-%type <Regexp.regexp> regexp
+%type <Regex.regex> regex
 
 %%
 
@@ -389,33 +389,33 @@ toplevel:
 command:
     | HELP                                          { do_help () }
     | HELP_WORD                                     { do_help_word () }
-    | HELP_REGEXP                                   { do_help_regexp () }
+    | HELP_REGEX                                   { do_help_regex () }
     | HELP_DFA                                      { do_help_dfa () }
     | HELP_NFA                                      { do_help_nfa () }
     | HELP_LANG                                     { do_help_language () }
     | QUESTION                                      { do_help () }
 
-    | dfa                                           { DFA_Regexp.print ~show_labels:!verbose $1 ; print_newline () }
-    | nfa                                           { NFA_Regexp.print ~show_labels:!verbose $1 ; print_newline () }
-    | regexp                                        { print_regexp $1 ; print_newline () }
+    | dfa                                           { DFA_Regex.print ~show_labels:!verbose $1 ; print_newline () }
+    | nfa                                           { NFA_Regex.print ~show_labels:!verbose $1 ; print_newline () }
+    | regex                                        { print_regex $1 ; print_newline () }
     | word                                          { print_endline ("\"" ^ $1 ^ "\"") }
     | language                                      { print_language $1 }
 
-    | REG AFFECT regexp                             { list_REG := IntMap.add $1 $3 !list_REG ;
+    | REG AFFECT regex                             { list_REG := IntMap.add $1 $3 !list_REG ;
                                                       if not !quiet
-                                                      then (print_regexp $3; print_newline ()) }
+                                                      then (print_regex $3; print_newline ()) }
     | DFA AFFECT dfa                                { list_DFA := IntMap.add $1 $3 !list_DFA ;
                                                       if not !quiet
-                                                      then (DFA_Regexp.print ~show_labels:!verbose $3 ; print_newline ()) }
+                                                      then (DFA_Regex.print ~show_labels:!verbose $3 ; print_newline ()) }
     | NFA AFFECT nfa                                { list_NFA := IntMap.add $1 $3 !list_NFA ;
                                                       if not !quiet
-                                                      then (NFA_Regexp.print ~show_labels:!verbose $3 ; print_newline ()) }
+                                                      then (NFA_Regex.print ~show_labels:!verbose $3 ; print_newline ()) }
     | NFA AFFECT NEWLINE table                      { list_NFA := IntMap.add $1 $4 !list_NFA }
     | LANG AFFECT NEWLINE language                  { list_LANG := IntMap.add $1 (List.rev $4) !list_LANG}
 
     | assertion                                     { if $1 then print_endline "true" else print_endline "false" }
     | ASSERT assertion                              { assertion $2 }
-    | DERIVATIVES raw_regexp                        { show_derivatives $2 }
+    | DERIVATIVES raw_regex                        { show_derivatives $2 }
 
 
     | SET VERBOSE ZERO                              { toggle_verbosity false }
@@ -435,14 +435,14 @@ command:
 
 assertion:
     | NOT assertion                         { not $2 }
-    | word IN regexp                        { match_regexp $1 $3 }
+    | word IN regex                        { match_regex $1 $3 }
     | word IN LANG LPAR VAR RPAR            { match_language $1 (get_LANG $3) $5 }
-    | word IN dfa                           { DFA_Regexp.accepts $3 (explode $1) }
-    | word IN nfa                           { NFA_Regexp.accepts $3 (explode $1) }
-    | INFINITE regexp                       { is_infinite $2 }
+    | word IN dfa                           { DFA_Regex.accepts $3 (explode $1) }
+    | word IN nfa                           { NFA_Regex.accepts $3 (explode $1) }
+    | INFINITE regex                       { is_infinite $2 }
 
     | EMPTY nfa                             { nfa_empty $2 }
-    | EMPTY regexp                          { is_empty $2 }
+    | EMPTY regex                          { is_empty $2 }
     | EMPTY dfa                             { dfa_empty $2 }
     | dfa_expr DOUBLE_EQUAL dfa_expr        { (dfa_subset $1 $3) && (dfa_subset $3 $1) }
     | dfa_expr LT dfa_expr                  { dfa_subset $1 $3 }
@@ -450,19 +450,19 @@ assertion:
 
 dfa_expr:
     | dfa       { $1 }
-    | nfa       { NFA_Regexp.to_dfa $1 }
-    | regexp    { dfa_from_regexp ~alphabet:!alphabet $1 }
+    | nfa       { NFA_Regex.to_dfa $1 }
+    | regex    { dfa_from_regex ~alphabet:!alphabet $1 }
 
 dfa:
     | LPAR dfa RPAR             { $2 }
-    | LBR regexp RBR            { dfa_from_regexp ~alphabet:!alphabet $2 }
-    | TILDE dfa                 { DFA_Regexp.complement $2 ~alphabet:!alphabet }
-    | TILDE dfa SLASH alphabet  { DFA_Regexp.complement $2 ~alphabet:$4 }
-    | BANG dfa                  { DFA_Regexp.minimize $2 }
-    | dfa PIPE dfa              { DFA_Regexp.union $1 $3 }
-    | dfa PLUS dfa              { DFA_Regexp.union $1 $3 }
-    | dfa AMPER dfa             { DFA_Regexp.intersection $1 $3 }
-    | LBR nfa RBR               { NFA_Regexp.to_dfa $2 }
+    | LBR regex RBR            { dfa_from_regex ~alphabet:!alphabet $2 }
+    | TILDE dfa                 { DFA_Regex.complement $2 ~alphabet:!alphabet }
+    | TILDE dfa SLASH alphabet  { DFA_Regex.complement $2 ~alphabet:$4 }
+    | BANG dfa                  { DFA_Regex.minimize $2 }
+    | dfa PIPE dfa              { DFA_Regex.union $1 $3 }
+    | dfa PLUS dfa              { DFA_Regex.union $1 $3 }
+    | dfa AMPER dfa             { DFA_Regex.intersection $1 $3 }
+    | LBR nfa RBR               { NFA_Regex.to_dfa $2 }
     | DFA                       { get_DFA $1 }
 
 alphabet:
@@ -475,15 +475,15 @@ elements:
 
 nfa:
     | LPAR nfa RPAR                 { $2 }
-    | LCURL regexp RCURL            { nfa_from_regexp_derivative ~alphabet:!alphabet $2 }
-    | LCURLD regexp RCURL           { nfa_from_regexp_derivative ~alphabet:!alphabet $2 }
-    | LCURLI regexp RCURL           { nfa_from_regexp_inductive $2 }
-    | nfa PIPE nfa                  { NFA_Regexp.union $1 $3 }
-    | nfa PLUS nfa                  { NFA_Regexp.union $1 $3 }
-    | nfa STAR                      { NFA_Regexp.star $1 }
-    | nfa DOT nfa                   { NFA_Regexp.concat $1 $3 }
-    | TRANS nfa                     { NFA_Regexp.transpose $2 }
-    | LCURL dfa RCURL               { NFA_Regexp.from_dfa $2 }
+    | LCURL regex RCURL            { nfa_from_regex_derivative ~alphabet:!alphabet $2 }
+    | LCURLD regex RCURL           { nfa_from_regex_derivative ~alphabet:!alphabet $2 }
+    | LCURLI regex RCURL           { nfa_from_regex_inductive $2 }
+    | nfa PIPE nfa                  { NFA_Regex.union $1 $3 }
+    | nfa PLUS nfa                  { NFA_Regex.union $1 $3 }
+    | nfa STAR                      { NFA_Regex.star $1 }
+    | nfa DOT nfa                   { NFA_Regex.concat $1 $3 }
+    | TRANS nfa                     { NFA_Regex.transpose $2 }
+    | LCURL dfa RCURL               { NFA_Regex.from_dfa $2 }
     | NFA                           { get_NFA $1 }
 
 language:
@@ -491,45 +491,46 @@ language:
     | LANG LPAR VAR RPAR SLASH word     { language_word_derivative (get_LANG $1) $3 $6 }
 
 
-regexp:
-    | raw_regexp                    { simplify $1 }
-    | LPARHASH raw_regexp RPAR      { $2 }
+regex:
+    | raw_regex                    { simplify $1 }
+    | LPARHASH raw_regex RPAR      { $2 }
 
-raw_regexp:
-    | sum_regexp                { $1 }
-    | raw_regexp SLASH word     { word_derivative $1 $3 }
-    | raw_regexp BACKSLASH word { word_antiderivative $1 $3 }
+raw_regex:
+    | sum_regex                { $1 }
+    | raw_regex SLASH word     { word_derivative $1 $3 }
+    | raw_regex BACKSLASH word { word_antiderivative $1 $3 }
+    | BANG raw_regex           { simplify_sums $2 }
 
-sum_regexp:
-    | product_regexp                { $1 }
-    | sum_regexp PLUS sum_regexp    { Sum($1, $3) }
-    | sum_regexp AMPER sum_regexp   { Neg(Sum(Neg($1),Neg($3))) }
+sum_regex:
+    | product_regex                { $1 }
+    | sum_regex PLUS sum_regex    { Sum($1, $3) }
+    | sum_regex AMPER sum_regex   { Neg(Sum(Neg($1),Neg($3))) }
 
-product_regexp:
-    | atomic_regexp                     { $1 }
-    | atomic_regexp product_regexp      { Product($1, $2) }
-    | atomic_regexp DOT product_regexp  { Product($1, $3) }
+product_regex:
+    | atomic_regex                     { $1 }
+    | atomic_regex product_regex      { Product($1, $2) }
+    | atomic_regex DOT product_regex  { Product($1, $3) }
 
-atomic_regexp:
+atomic_regex:
     | ZERO                                  { Zero }
     | ONE                                   { One }
     | SYMB                                  { Symb($1) }
     | VAR                                   { Var($1) }
-    | LPAR raw_regexp RPAR                  { $2 }
-    | atomic_regexp STAR                    { Star($1) }
-    | TILDE atomic_regexp                   { Neg($2) }
+    | LPAR raw_regex RPAR                  { $2 }
+    | atomic_regex STAR                    { Star($1) }
+    | TILDE atomic_regex                   { Neg($2) }
 
     | REG                                   { get_REG $1 }
-    | TRANS atomic_regexp                   { transpose $2 }
-    | PREF atomic_regexp                    { prefix $2 }
-    | LANGL nfa RANGL                       { regexp_from_nfa $2 }
-    | LANGL dfa RANGL                       { regexp_from_nfa (NFA_Regexp.from_dfa $2) }
-    | LANGL RANDOM RANGL                    { random_regexp $2 }
+    | TRANS atomic_regex                   { transpose $2 }
+    | PREF atomic_regex                    { prefix $2 }
+    | LANGL nfa RANGL                       { regex_from_nfa $2 }
+    | LANGL dfa RANGL                       { regex_from_nfa (NFA_Regex.from_dfa $2) }
+    | LANGL RANDOM RANGL                    { random_regex $2 }
 
-    | atomic_regexp QUESTION                   { Sum(One, $1) }
-    | atomic_regexp LCURL num RCURL            { prod $3 $1 }
-    | atomic_regexp LCURL num COMMA RCURL      { Product(prod $3 $1,Star($1)) }
-    | atomic_regexp LCURL num COMMA num RCURL  { sum $3 $5 $1}
+    | atomic_regex QUESTION                   { Sum(One, $1) }
+    | atomic_regex LCURL num RCURL            { prod $3 $1 }
+    | atomic_regex LCURL num COMMA RCURL      { Product(prod $3 $1,Star($1)) }
+    | atomic_regex LCURL num COMMA num RCURL  { sum $3 $5 $1}
 
 num:
     | NUM   { $1 }
@@ -588,4 +589,4 @@ atomic_word:
 
 language:
     |                                       {[]}
-    | VAR ARROW regexp NEWLINE language     { ($1,$3)::$5}
+    | VAR ARROW regex NEWLINE language     { ($1,$3)::$5}

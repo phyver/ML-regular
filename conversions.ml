@@ -10,15 +10,15 @@
  **)
 
 
-open Regexp
+open Regex
 open Common
 
-(* we will need an automaton with regexps as states and characters as symbols
+(* we will need an automaton with regexs as states and characters as symbols
  * those are the corresponding OTypes *)
-module ORegexp = struct
-    type t = regexp
+module ORegex = struct
+    type t = regex
     let compare = compare
-    let to_string = string_of_regexp
+    let to_string = string_of_regex
 end
 
 module OChar = struct
@@ -28,34 +28,34 @@ module OChar = struct
 end
 
 
-module DFA_Regexp = DFA.Make(OChar)(ORegexp)
-module NFA_Regexp = NFA.Make(OChar)(ORegexp)
+module DFA_Regex = DFA.Make(OChar)(ORegex)
+module NFA_Regex = NFA.Make(OChar)(ORegex)
 
-(* transform a regexp into an automaton by computing its derivatives *)
-let dfa_from_regexp ?(alphabet=[]) (r:regexp) : DFA_Regexp.dfa =
+(* transform a regex into an automaton by computing its derivatives *)
+let dfa_from_regex ?(alphabet=[]) (r:regex) : DFA_Regex.dfa =
 
-    (* the symbols appearing in the regexp *)
+    (* the symbols appearing in the regex *)
     let alphabet = List.sort OChar.compare alphabet in
-    let actual_symbols = merge_union alphabet (Regexp.get_symbols r) in
+    let actual_symbols = merge_union alphabet (Regex.get_symbols r) in
 
     (* we compute all the derivatives and put them in an automaton
-     *   - "done_states" contains all the states (regexps) whose derivative we
+     *   - "done_states" contains all the states (regexs) whose derivative we
      *      have already computed the corresponding rows in the automaton are
      *      thus complete
      *   - "matrix" contains the matrix of the automaton as association lists
      *   - "accepting" contains the list of accepting states we have already
      *      encountered
-     *   - "todo" contains the states (regexps) whose derivatives we haven't
+     *   - "todo" contains the states (regexs) whose derivatives we haven't
      *     yet computed
      *)
-    let rec aux (done_states:regexp list)
+    let rec aux (done_states:regex list)
                 matrix
                 accepting
-                (todo:regexp list) =
+                (todo:regex list) =
         match todo with
             | [] -> done_states, matrix, accepting
             | r::todo ->
-                    let accepting = if (Regexp.contains_epsilon r)
+                    let accepting = if (Regex.contains_epsilon r)
                                     then Atom(r)::accepting
                                     else accepting
                     in
@@ -66,7 +66,7 @@ let dfa_from_regexp ?(alphabet=[]) (r:regexp) : DFA_Regexp.dfa =
                             List.fold_left
                                 (fun rt (a:char) ->
                                     let row,todo = rt in
-                                    let ra = Regexp.simplify (Regexp.derivative r a) in
+                                    let ra = Regex.simplify (Regex.derivative r a) in
                                     let row = (a,Atom(ra))::row in
                                     (row,ra::todo)
                             ) ([],todo) actual_symbols
@@ -76,52 +76,52 @@ let dfa_from_regexp ?(alphabet=[]) (r:regexp) : DFA_Regexp.dfa =
 
     let _, matrix, accepting = aux [] [] [] [r] in
 
-    DFA_Regexp.from_matrix matrix (Atom(r)) accepting
+    DFA_Regex.from_matrix matrix (Atom(r)) accepting
 
-(* compute an NFA from a regexp using the inductive construction à la Thomson *)
-let rec nfa_from_regexp_inductive r = match r with
-    | Zero -> NFA_Regexp.zero_nfa
-    | One -> NFA_Regexp.one_nfa
-    | Symb(a) -> NFA_Regexp.symbol_nfa a
-    | Neg(r) -> raise (Failure "cannot compute the NFA associated to a negated regexp directly")
+(* compute an NFA from a regex using the inductive construction à la Thomson *)
+let rec nfa_from_regex_inductive r = match r with
+    | Zero -> NFA_Regex.zero_nfa
+    | One -> NFA_Regex.one_nfa
+    | Symb(a) -> NFA_Regex.symbol_nfa a
+    | Neg(r) -> raise (Failure "cannot compute the NFA associated to a negated regex directly")
     | Sum(r1,r2) ->
-            let d1 = nfa_from_regexp_inductive r1 in
-            let d2 = nfa_from_regexp_inductive r2 in
-            NFA_Regexp.union d1 d2
+            let d1 = nfa_from_regex_inductive r1 in
+            let d2 = nfa_from_regex_inductive r2 in
+            NFA_Regex.union d1 d2
     | Product(r1,r2) ->
-            let d1 = nfa_from_regexp_inductive r1 in
-            let d2 = nfa_from_regexp_inductive r2 in
-            NFA_Regexp.concat d1 d2
+            let d1 = nfa_from_regex_inductive r1 in
+            let d2 = nfa_from_regex_inductive r2 in
+            NFA_Regex.concat d1 d2
     | Star(r) ->
-            let d = nfa_from_regexp_inductive r in
-            NFA_Regexp.star d
+            let d = nfa_from_regex_inductive r in
+            NFA_Regex.star d
     | Var(_) -> assert false
 
-(* transform a regexp into an NFA by computing its derivatives *)
-let nfa_from_regexp_derivative ?(alphabet=[]) (r:regexp) : NFA_Regexp.nfa =
+(* transform a regex into an NFA by computing its derivatives *)
+let nfa_from_regex_derivative ?(alphabet=[]) (r:regex) : NFA_Regex.nfa =
 
-    (* the symbols appearing in the regexp *)
+    (* the symbols appearing in the regex *)
     let alphabet = List.sort OChar.compare alphabet in
-    let actual_symbols = merge_union alphabet (Regexp.get_symbols r) in
+    let actual_symbols = merge_union alphabet (Regex.get_symbols r) in
 
     (* we compute all the derivatives and put them in an automaton
-     *   - "done_states" contains all the states (regexps) whose derivative we
+     *   - "done_states" contains all the states (regexs) whose derivative we
      *      have already computed the corresponding rows in the automaton are
      *      thus complete
      *   - "matrix" contains the matrix of the automaton as association lists
      *   - "accepting" contains the list of accepting states we have already
      *      encountered
-     *   - "todo" contains the states (regexps) whose derivatives we haven't
+     *   - "todo" contains the states (regexs) whose derivatives we haven't
      *     yet computed
      *)
-    let rec aux (done_states:regexp list)
+    let rec aux (done_states:regex list)
                 matrix
                 accepting
-                (todo:regexp list) =
+                (todo:regex list) =
         match todo with
             | [] -> done_states, matrix, accepting
             | r::todo ->
-                    let accepting = if (Regexp.contains_epsilon r)
+                    let accepting = if (Regex.contains_epsilon r)
                                     then Atom(r)::accepting
                                     else accepting
                     in
@@ -132,7 +132,7 @@ let nfa_from_regexp_derivative ?(alphabet=[]) (r:regexp) : NFA_Regexp.nfa =
                             List.fold_left
                                 (fun rt (a:char) ->
                                     let row,todo = rt in
-                                    let ra = Regexp.simplify (Regexp.derivative r a) in
+                                    let ra = Regex.simplify (Regex.derivative r a) in
                                     let ras = get_summands ra in
                                     let row = (Some(a),List.map (fun r -> Atom(r)) ras)::row in
                                     (row,ras@todo)
@@ -144,18 +144,18 @@ let nfa_from_regexp_derivative ?(alphabet=[]) (r:regexp) : NFA_Regexp.nfa =
     let init = get_summands r in
     let _, matrix, accepting = aux [] [] [] init in
 
-    NFA_Regexp.from_matrix matrix (List.map (fun s -> Atom(s)) init) accepting
+    NFA_Regex.from_matrix matrix (List.map (fun s -> Atom(s)) init) accepting
 
 
-(* regexp from nfa *)
+(* regex from nfa *)
 (* FIXME: probably not very optimized *)
 module IntIntMap = Map.Make(struct type t=int*int let compare=compare end)
-type mat = regexp IntIntMap.t
+type mat = regex IntIntMap.t
 
-let regexp_from_nfa ?(random=true) aut : regexp =
+let regex_from_nfa ?(random=true) aut : regex =
 
-    let states = NFA_Regexp.get_states aut in
-    let symbols = NFA_Regexp.get_symbols aut in
+    let states = NFA_Regex.get_states aut in
+    let symbols = NFA_Regex.get_symbols aut in
     let id s = idx s states in
 
     (*
@@ -164,7 +164,7 @@ let regexp_from_nfa ?(random=true) aut : regexp =
         IntIntMap.iter
             (fun st r -> print_int (fst st) ;
                          print_string " --" ;
-                         print_regexp r ;
+                         print_regex r ;
                          print_string "--> " ;
                          print_int (snd st) ;
                          print_newline ()
@@ -178,7 +178,7 @@ let regexp_from_nfa ?(random=true) aut : regexp =
         List.fold_left (fun matrix s -> let is = id s in
         List.fold_left (fun matrix a ->
             try
-                let ts = NFA_Regexp.next aut s (Some(a)) in
+                let ts = NFA_Regex.next aut s (Some(a)) in
                 List.fold_left (fun matrix t -> let it = id t in
                     let entry = try IntIntMap.find (is,it) matrix
                                 with Not_found -> Zero
@@ -189,11 +189,11 @@ let regexp_from_nfa ?(random=true) aut : regexp =
         ) matrix symbols
         ) IntIntMap.empty states
     in
-    (* we also add the regexp corresponding to epsilon transititions *)
+    (* we also add the regex corresponding to epsilon transititions *)
     let matrix =
         List.fold_left (fun matrix s -> let is = id s in
             try
-                let ts = NFA_Regexp.next aut s None in
+                let ts = NFA_Regex.next aut s None in
                 List.fold_left (fun matrix t -> let it = id t in
                     let entry = try IntIntMap.find (is,it) matrix
                                 with Not_found -> Zero
@@ -209,13 +209,13 @@ let regexp_from_nfa ?(random=true) aut : regexp =
     let matrix =
         List.fold_left (fun matrix s -> let is = id s in
             IntIntMap.add (init,is) One matrix
-        ) matrix (NFA_Regexp.get_init aut)
+        ) matrix (NFA_Regex.get_init aut)
     in
     let final = -2 in
     let matrix =
         List.fold_left (fun matrix s -> let is = id s in
             IntIntMap.add (is,final) One matrix
-        ) matrix (List.filter (NFA_Regexp.is_accepting aut) states)
+        ) matrix (List.filter (NFA_Regex.is_accepting aut) states)
     in
 
     (* remove a state from the matrix *)
@@ -267,19 +267,48 @@ let regexp_from_nfa ?(random=true) aut : regexp =
     with Not_found -> Zero
 
 
-(* the same, but we try it many times and keep the smallest regexp *)
-let regexp_from_nfa aut =
+(* the same, but we try it many times and keep the smallest regex *)
+let regex_from_nfa aut =
     let rec aux n r =
         if n<0
         then r
-        else let rr = regexp_from_nfa aut in
-             if String.length (string_of_regexp r) < String.length (string_of_regexp rr)
+        else let rr = regex_from_nfa aut in
+             if String.length (string_of_regex r) < String.length (string_of_regex rr)
              then aux (n-1) r
              else aux (n-1) rr
     in
-    aux 100 (regexp_from_nfa aut)
+    aux 100 (regex_from_nfa aut)
 
-(* TODO: we seem to get many regexps of the form (1+x)(1+x)* which is equal to x*... Perhaps I could simplify that... *)
+(* TODO: we seem to get many regexs of the form (1+x)(1+x)* which is equal to x*... Perhaps I could simplify that... *)
 
+
+(* TODO: a simplification function that removes summands that are less than the sum *)
+let simplify_sums r =
+
+    let less r1 r2 =
+        let dfa1 = dfa_from_regex r1 in
+        let dfa2 = dfa_from_regex r2 in
+        DFA_Regex.subset dfa1 dfa2
+    in
+
+    let rec aux summands acc = match summands with
+        | [] -> list2sum acc
+        | r1::summands ->
+                let r = list2sum (List.rev_append summands acc) in
+                if less r1 r
+                then aux summands acc
+                else aux summands (r1::acc)
+    in
+
+    let rec simplify_aux r = match r with
+        | Zero | One | Symb(_) | Var(_) -> r
+        | Product(r1, r2) -> Product(simplify_aux r1, simplify_aux r2)
+        | Star(r) -> Star(simplify_aux r)
+        | Neg(r) -> Neg(simplify_aux r)
+        | Sum(_,_) ->
+                let summands = get_summands r in
+                aux summands []
+    in
+    simplify_aux r
 
 (* vim600:set textwidth=0: *)

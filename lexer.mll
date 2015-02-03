@@ -38,7 +38,7 @@ rule token = parse
   | '}'             { RCURL }
   | '+'             { PLUS }
   | '*'             { STAR }
-  | "^*"            { STAR }  (* to allow regexp pasted from TeX source *)
+  | "^*"            { STAR }  (* to allow regex pasted from TeX source *)
   | '0'             { ZERO }
   | '1'             { ONE }
   | character       { SYMB(Lexing.lexeme_char lexbuf 0) }
@@ -84,7 +84,7 @@ rule token = parse
   | "quiet"         { QUIET }
   | "alphabet"      { ALPHABET }
   | help spaces "word"     { HELP_WORD }
-  | help spaces "regexp"   { HELP_REGEXP }
+  | help spaces "regex"   { HELP_REGEX }
   | help spaces "dfa"      { HELP_DFA }
   | help spaces "nfa"      { HELP_NFA }
   | help spaces "lang"     { HELP_LANG }
