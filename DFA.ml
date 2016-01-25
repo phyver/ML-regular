@@ -502,7 +502,7 @@ module Make(Symbol:OType) (State:OType)
                                     let by = is_defined d y a in
                                     if (not bx && by) || (bx && not by)
                                     then true   (* they are surely different *)
-                                    else if not bx & not by
+                                    else if not bx && not by
                                     then false  (* they might be similar *)
                                     else let xa = next d x a in
                                          let ya = next d y a in
