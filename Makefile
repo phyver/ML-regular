@@ -1,69 +1,26 @@
 INSTALLDIR=$(HOME)/.local/bin
+OCAMLBUILD=ocamlbuild
 
-OCAMLYACC=ocamlyacc
-OCAMLLEX=ocamllex
-OCAMLC=ocamlc
-OCAMLOPT=ocamlopt -g
-OCAMLDEP=ocamldep
+all: native
 
-INCLUDES=
+tags:
+	ctags *.ml
 
-OCAMLFLAGS=$(INCLUDES)
-OCAMLDEPFLAGS=$(INCLUDES)
+native:
+	$(OCAMLBUILD) main.native
+	@ln -sf ./main.native ./mlr
 
-BYTEFILES=common.cmo regex.cmo DFA.cmo NFA.cmo lexer.cmo conversions.cmo parser.cmo
-OPTFILES=common.cmx regex.cmx DFA.cmx NFA.cmx lexer.cmx conversions.cmx parser.cmx
-
-# Common rules
-.SUFFIXES: .ml .mli .cmo .cmi .cmx
-
-.ml.cmo:
-	$(OCAMLC) $(OCAMLFLAGS) -c -annot $<
-
-.mli.cmi:
-	$(OCAMLC) $(OCAMLFLAGS) -c $<
-
-.ml.cmx:
-		$(OCAMLOPT) $(OCAMLOPTFLAGS) -c $<
-
-all: opt
-
-prof: $(OPTFILES)
-	$(OCAMLOPT) -p $(INCLUDES) $(OPTFILES) -o prof prof.ml
-
-annot: $(BYTEFILES)
-
-byte: $(BYTEFILES)
-	$(OCAMLC) $(INCLUDES) $(BYTEFILES) -o mlr main.ml
-
-opt: $(OPTFILES)
-	$(OCAMLOPT) $(INCLUDES) $(OPTFILES) -o mlr main.ml
-
-depend: parser.ml lexer.ml
-	$(OCAMLDEP) $(OCAMLDEPFLAGS) *.ml *.mli > .depend
-
-parser.ml:
-	$(OCAMLYACC) $(OCAMLYACCFLAGS) parser.mly
-
-lexer.ml:
-	$(OCAMLLEX) $(OCAMLLEXFLAGS) lexer.mll
-
-install: opt
-	install -d $(INSTALLDIR)
-	install ./mlr $(INSTALLDIR)
+byte:
+	$(OCAMLBUILD) main.byte
+	@ln -sf ./main.byte ./mlr
 
 clean:
-	rm -f *.cm[aoix] *.o
-	rm -f lexer.ml parser.ml parser.mli
-	rm -f gmon.out
-
-very_clean:
-	rm -f *.cm[aoix] *.o
-	rm -f lexer.ml parser.ml parser.mli
-	rm -f *.annot
-	rm -f ML-regular.tar.gz
-	rm -f gmon.out
-	rm -f prof mlr
+	$(OCAMLBUILD) -clean
+	rm -rf _build
+	rm -f main.native main.byte
+	rm -f mlr
+	rm -f tags
+	rm -f gmon.out a.out
 
 
-include .depend
+
