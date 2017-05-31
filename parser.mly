@@ -372,10 +372,14 @@ let print_set l = match l with
 
 
 //priorities and associativity of some operations
+//TODO: check priorities
 %right PIPE PLUS
 %right AMPER
+%right PREF TRANS
+%right DOT
 %right TILDE BANG
-%left STAR
+%left STAR QUESTION LCURL
+%left SLASH BACKSLASH
 
 %start toplevel
 %type <unit> toplevel
@@ -389,7 +393,7 @@ toplevel:
 command:
     | HELP                                          { do_help () }
     | HELP_WORD                                     { do_help_word () }
-    | HELP_REGEX                                   { do_help_regex () }
+    | HELP_REGEX                                    { do_help_regex () }
     | HELP_DFA                                      { do_help_dfa () }
     | HELP_NFA                                      { do_help_nfa () }
     | HELP_LANG                                     { do_help_language () }
@@ -431,7 +435,7 @@ command:
 
     | EOF                                           { raise End_of_file }
     | QUIT                                          { exit 0 }
-    |                                               { () }
+    /* empty command also parsed as empty language |                                               { () } */
 
 assertion:
     | NOT assertion                         { not $2 }
@@ -456,8 +460,8 @@ dfa_expr:
 dfa:
     | LPAR dfa RPAR             { $2 }
     | LBR regex RBR            { dfa_from_regex ~alphabet:!alphabet $2 }
-    | TILDE dfa                 { DFA_Regex.complement $2 ~alphabet:!alphabet }
     | TILDE dfa SLASH alphabet  { DFA_Regex.complement $2 ~alphabet:$4 }
+    | TILDE dfa                 { DFA_Regex.complement $2 ~alphabet:!alphabet }
     | BANG dfa                  { DFA_Regex.minimize $2 }
     | dfa PIPE dfa              { DFA_Regex.union $1 $3 }
     | dfa PLUS dfa              { DFA_Regex.union $1 $3 }
@@ -489,6 +493,8 @@ nfa:
 language:
     | LANG                              { get_LANG $1 }
     | LANG LPAR VAR RPAR SLASH word     { language_word_derivative (get_LANG $1) $3 $6 }
+    |                                   {[]}
+    | VAR ARROW regex NEWLINE language  { ($1,$3)::$5 }
 
 
 regex:
@@ -554,7 +560,6 @@ first_line:
 
 end_table:
     |                               { [] }
-    | LINE                          { [] }
     | table_line NEWLINE end_table  { $1::$3 }
 
 table_line:
@@ -587,6 +592,3 @@ atomic_word:
     | LPAR raw_word RPAR                        { $2 }
     | atomic_word LCURL num RCURL               { n_concat $1 $3 }
 
-language:
-    |                                       {[]}
-    | VAR ARROW regex NEWLINE language     { ($1,$3)::$5}
