@@ -1,0 +1,30 @@
+{- cf http://swtch.com/~rsc/regexp/regexp1.html -}
+
+:set quiet 1
+
+{- matching a{40} against a?{40}a{40} -}
+R1 := a?{40}a{40}
+:assert "a{40}" IN R1
+
+D1 := [ R1 ]
+:assert "a{40}" IN D1
+
+N1 := { R1 }
+:assert "a{40}" IN N1
+
+
+{- matching a{100} against a?{100}a{100} -}
+
+{- about 10 seconds -}
+R2 := a?{100}a{100}
+:assert "a{100}" IN R2
+
+{- about 20 seconds -}
+D2 := [ R2 ]
+:assert "a{100}" IN D2
+
+{- about 1 second -}
+N2 := { R2 }
+:assert "a{100}" IN R2
+
+:quit

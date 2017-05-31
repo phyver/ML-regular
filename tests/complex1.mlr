@@ -1,0 +1,23 @@
+{- example where the DFA is much bigger than the DFA -}
+
+:set quiet 1
+
+R1 := (aa)* + (aaa)* + (aaaaa)* + (aaaaaaa)* + (aaaaaaaaaaa)*
+
+{- the NFA has states -}
+N1 := { R1 }
+
+{- the DFA has 2310 states -}
+D1 := [ R1 ]
+
+
+{- more complex -}
+R2 := (aa)* + (aaa)* + (aaaaa)* + (aaaaaaa)* + (aaaaaaaaaaa)* + (aaaaaaaaaaaaa)*
+
+{- the NFA has 87 states -}
+N2 := { R2 }
+
+{- the DFA has 30030 states and takes several minutes (between 4 and 5) to build -}
+D2 := [ R2 ]
+
+:quit
