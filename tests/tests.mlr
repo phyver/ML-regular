@@ -10,6 +10,7 @@
 :assert (aaa)*aa == a(aaa)*a
 :assert (aaa)*aa == aa(aaa)*
 :assert (a+b)* == (a*b)*a*
+:assert (a+bc(d+e)*) == (bc(e+d)*+a)
 
 :set alphabet {a,b}
 :assert ab(ab)* == ~(~0 (aa+bb) ~0) & a ~0 b
