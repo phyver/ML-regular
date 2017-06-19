@@ -45,10 +45,10 @@ let explode s =
     exp (String.length s - 1) []
 (* and converse *)
 let implode l =
-    let res = String.create (List.length l) in
+    let res = Bytes.create (List.length l) in
     let rec imp i = function
         | [] -> res
-        | c :: l -> res.[i] <- c; imp (i + 1) l
+        | c :: l -> Bytes.set res i c; imp (i + 1) l
     in
     imp 0 l
 
